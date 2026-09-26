@@ -74,6 +74,6 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 
 ## Open TODOs
 
-Tracked in the fivefold GitHub Project (to be created): PWA/offline, hints
-that cost points, seeded/shareable stages and a daily stage, emoji share
-text, achievements, streaks, high-contrast toggle.
+Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
+PWA/offline, hints, seeded/shareable stages, daily stage, share text,
+achievements, streaks, hard mode, definitions.
