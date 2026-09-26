@@ -1,4 +1,4 @@
-import type { WordResult } from "./scoring";
+import { STAGE_LENGTH, type WordResult } from "./scoring";
 
 const STORAGE_KEY = "fivefold";
 const VERSION = 1;
@@ -49,6 +49,27 @@ export const emptyState = (): SavedState => ({
   stage: null,
 });
 
+const isWordList = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((w) => /^[a-z]{5}$/.test(String(w)));
+
+// Guards the fields App dereferences without checks; anything else is
+// display-only and can't crash rendering.
+function isStage(value: unknown): value is StageProgress {
+  if (!value || typeof value !== "object") return false;
+  const s = value as Partial<StageProgress>;
+  return (
+    Number.isInteger(s.number) &&
+    isWordList(s.words) &&
+    s.words.length === STAGE_LENGTH &&
+    Number.isInteger(s.cursor) &&
+    s.cursor! >= 0 &&
+    s.cursor! < STAGE_LENGTH &&
+    Array.isArray(s.results) &&
+    (s.results.length === s.cursor || s.results.length === s.cursor! + 1) &&
+    isWordList(s.guesses)
+  );
+}
+
 // localStorage can throw (private mode, blocked storage) or hold data from a
 // future schema; either way, start fresh rather than crash the game.
 export function loadState(): SavedState {
@@ -58,9 +79,10 @@ export function loadState(): SavedState {
     const parsed = JSON.parse(raw) as Partial<SavedState>;
     if (parsed.version !== VERSION) return emptyState();
     return {
-      ...emptyState(),
-      ...parsed,
+      version: VERSION,
       stats: { ...emptyStats(), ...parsed.stats },
+      served: isWordList(parsed.served) ? parsed.served : [],
+      stage: isStage(parsed.stage) ? parsed.stage : null,
     };
   } catch {
     return emptyState();

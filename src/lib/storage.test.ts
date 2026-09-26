@@ -24,6 +24,21 @@ describe("storage", () => {
     expect(loadState()).toEqual(emptyState());
   });
 
+  it("drops a malformed stage but keeps stats", () => {
+    const state = emptyState();
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({
+        ...state,
+        stats: { ...state.stats, totalPoints: 90 },
+        stage: { number: 1, words: ["stand"], cursor: 3, guesses: "nope" },
+      }),
+    );
+    const loaded = loadState();
+    expect(loaded.stage).toBeNull();
+    expect(loaded.stats.totalPoints).toBe(90);
+  });
+
   it("records solved and given-up words", () => {
     let stats = recordWord(emptyStats(), {
       answer: "stand",

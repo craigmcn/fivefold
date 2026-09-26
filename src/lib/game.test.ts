@@ -24,7 +24,7 @@ const WORDS = [
 const start = (): GameState =>
   gameReducer(
     { saved: emptyState(), input: "", message: null, rejections: 0 },
-    { type: "newStage", words: WORDS },
+    { type: "newStage", words: WORDS, served: [] },
   );
 
 const typeWord = (state: GameState, word: string): GameState =>
@@ -95,6 +95,13 @@ describe("gameReducer", () => {
     expect(state.saved.stage).toMatchObject({ cursor: 1, guesses: [] });
   });
 
+  it("doesn't duplicate an answer that was already served", () => {
+    let state = start();
+    state = { ...state, saved: { ...state.saved, served: ["stand"] } };
+    state = typeWord(state, "stand");
+    expect(state.saved.served).toEqual(["stand"]);
+  });
+
   it("gives up for zero points", () => {
     let state = typeWord(start(), "crane");
     state = gameReducer(state, { type: "giveUp" });
@@ -122,7 +129,7 @@ describe("gameReducer", () => {
       bestStageScore: 8 * 60 + 120 + 180 + 100,
     });
 
-    state = gameReducer(state, { type: "newStage", words: WORDS });
+    state = gameReducer(state, { type: "newStage", words: WORDS, served: [] });
     expect(state.saved.stage).toMatchObject({ number: 2, cursor: 0 });
   });
 });

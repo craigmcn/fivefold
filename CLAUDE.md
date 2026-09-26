@@ -32,8 +32,10 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   - `blocklist.txt` blocks guesses and answers; `answer-exclude.txt` only
     keeps words out of the answer pool (crude words, and ones NYT retired).
 - **Stage shape:** `src/lib/stage.ts` `STAGE_TIERS` = easy, easy, medium,
-  medium, **hard**, easy, medium, medium, medium, **brutal**. `pickStage`
-  prefers unserved words and falls back to the full tier once exhausted.
+  medium, **hard**, easy, medium, medium, medium, **brutal**. `pickStage` prefers unserved words; when a tier runs
+  dry it clears only that tier's history (a new cycle) and returns the
+  updated served list, which the `newStage` action stores. This keeps
+  repeat-avoidance working forever and `served` bounded.
 - **Scoring:** `src/lib/scoring.ts`: 60/50/40/30/20/10 for guesses 1–6,
   0 after (still solvable, unlimited guesses). Boss multipliers ×2 (word 5)
   and ×3 (word 10). +100 clean-stage bonus if all ten words solved in ≤6
@@ -46,8 +48,8 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   the App event handler, never in the reducer.
 - **Persistence:** `src/lib/storage.ts`: one versioned `localStorage` key
   (`fivefold`, `version: 1`) holding stats, served answers and the stage in
-  progress. Unknown versions or corrupt data reset to empty rather than
-  crash; bump `VERSION` and add a migration if the shape changes.
+  progress. Unknown versions or corrupt data reset to empty, and a
+  malformed saved stage is dropped (stats kept) rather than crashing; bump `VERSION` and add a migration if the shape changes.
 - **Evaluation:** `src/lib/evaluate.ts`: two-pass Wordle scoring so
   duplicate letters are handled correctly; `keyboardStatuses` keeps each
   letter's best status for the on-screen keyboard.

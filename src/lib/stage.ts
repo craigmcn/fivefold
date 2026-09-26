@@ -16,18 +16,28 @@ export const STAGE_TIERS: readonly Tier[] = [
   "brutal",
 ];
 
-// Picks one unplayed answer per slot. Once a tier's answers have all been
-// served, it falls back to the whole tier so play can continue forever.
+export interface PickedStage {
+  words: string[];
+  served: string[];
+}
+
+// Picks one unplayed answer per slot. When a tier runs dry, only that tier's
+// history is cleared to start a new cycle, so repeat-avoidance keeps working
+// indefinitely and the served list stays bounded by the answer count.
 export function pickStage(
-  served: ReadonlySet<string>,
+  served: readonly string[],
   random: () => number = Math.random,
-): string[] {
-  const chosen: string[] = [];
+): PickedStage {
+  const remaining = new Set(served);
+  const words: string[] = [];
   for (const tier of STAGE_TIERS) {
-    const pool = ANSWERS[tier].filter((w) => !chosen.includes(w));
-    const fresh = pool.filter((w) => !served.has(w));
-    const options = fresh.length > 0 ? fresh : pool;
-    chosen.push(options[Math.floor(random() * options.length)]);
+    const pool = ANSWERS[tier].filter((w) => !words.includes(w));
+    let fresh = pool.filter((w) => !remaining.has(w));
+    if (fresh.length === 0) {
+      ANSWERS[tier].forEach((w) => remaining.delete(w));
+      fresh = pool;
+    }
+    words.push(fresh[Math.floor(random() * fresh.length)]);
   }
-  return chosen;
+  return { words, served: [...remaining] };
 }

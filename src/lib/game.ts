@@ -7,6 +7,7 @@ import {
   stageScore,
   type WordResult,
 } from "./scoring";
+import type { PickedStage } from "./stage";
 import {
   recordStage,
   recordWord,
@@ -28,7 +29,7 @@ export type GameAction =
   | { type: "submit" }
   | { type: "giveUp" }
   | { type: "nextWord" }
-  | { type: "newStage"; words: string[] };
+  | { type: "newStage"; words: string[]; served: string[] };
 
 export const isWordDone = (stage: StageProgress): boolean =>
   stage.results.length > stage.cursor;
@@ -36,10 +37,14 @@ export const isWordDone = (stage: StageProgress): boolean =>
 export const isStageDone = (stage: StageProgress): boolean =>
   stage.results.length === STAGE_LENGTH;
 
-export function newStage(saved: SavedState, words: string[]): SavedState {
+export function newStage(
+  saved: SavedState,
+  { words, served }: PickedStage,
+): SavedState {
   const number = (saved.stage?.number ?? saved.stats.stagesCompleted) + 1;
   return {
     ...saved,
+    served,
     stage: { number, words, cursor: 0, results: [], guesses: [] },
   };
 }
@@ -69,7 +74,9 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
     saved: {
       ...state.saved,
       stats,
-      served: [...state.saved.served, result.answer],
+      served: state.saved.served.includes(result.answer)
+        ? state.saved.served
+        : [...state.saved.served, result.answer],
       stage: { ...stage, results },
     },
   };
@@ -83,7 +90,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       ...state,
       input: "",
       message: null,
-      saved: newStage(state.saved, action.words),
+      saved: newStage(state.saved, action),
     };
   }
   if (!stage) return state;

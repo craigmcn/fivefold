@@ -1,7 +1,6 @@
 export const STAGE_LENGTH = 10;
-export const SCORED_GUESSES = 6;
-
-const POINTS_BY_GUESS = [60, 50, 40, 30, 20, 10];
+export const POINTS_BY_GUESS: readonly number[] = [60, 50, 40, 30, 20, 10];
+export const SCORED_GUESSES = POINTS_BY_GUESS.length;
 export const CLEAN_STAGE_BONUS = 100;
 
 // The two "boss" words (5th and 10th) are worth more to reward the jump in

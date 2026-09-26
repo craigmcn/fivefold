@@ -12,7 +12,12 @@
     <script>
       (() =>
         !window.location.pathname.endsWith("/") &&
-        window.location.replace(window.location.href + "/"))();
+        window.location.replace(
+          window.location.pathname +
+            "/" +
+            window.location.search +
+            window.location.hash,
+        ))();
     </script>
   </head>
   <body>

@@ -1,6 +1,7 @@
 import {
   BOSS_MULTIPLIERS,
   CLEAN_STAGE_BONUS,
+  POINTS_BY_GUESS,
   SCORED_GUESSES,
   STAGE_LENGTH,
 } from "../lib/scoring";
@@ -27,9 +28,9 @@ export function HowToPlay() {
         </li>
       </ul>
       <p>
-        Words come in stages of {STAGE_LENGTH}. Solving in 1 guess scores 60
-        points, dropping by 10 each guess down to 10 points on guess{" "}
-        {SCORED_GUESSES}.
+        Words come in stages of {STAGE_LENGTH}. Solving in 1 guess scores{" "}
+        {POINTS_BY_GUESS[0]} points, dropping to {POINTS_BY_GUESS.at(-1)} points
+        on guess {SCORED_GUESSES}.
       </p>
       <p>
         There's no guess limit: after {SCORED_GUESSES} you can keep going for no

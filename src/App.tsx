@@ -28,9 +28,7 @@ import { loadState, saveState } from "./lib/storage";
 function init(): GameState {
   const saved = loadState();
   return {
-    saved: saved.stage
-      ? saved
-      : newStage(saved, pickStage(new Set(saved.served))),
+    saved: saved.stage ? saved : newStage(saved, pickStage(saved.served)),
     input: "",
     message: null,
     rejections: 0,
@@ -53,7 +51,7 @@ function App() {
   const advance = useCallback(() => {
     if (!wordDone) return;
     if (stageDone) {
-      dispatch({ type: "newStage", words: pickStage(new Set(saved.served)) });
+      dispatch({ type: "newStage", ...pickStage(saved.served) });
     } else {
       dispatch({ type: "nextWord" });
     }
