@@ -1,0 +1,71 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Teal / coral rather than Wordle's green / yellow: a blue–orange pairing
+   stays distinguishable under the common forms of colour blindness. */
+:root {
+  --text: #1d2330;
+  --text-muted: #5a6272;
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --border: #d5d8de;
+  --border-strong: #8a909c;
+  --accent: #0e7c86;
+  --accent-text: #ffffff;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+
+  --tile-correct-bg: #0e7c86;
+  --tile-correct-text: #ffffff;
+  --tile-present-bg: #c4512d;
+  --tile-present-text: #ffffff;
+  --tile-absent-bg: #5c6470;
+  --tile-absent-text: #ffffff;
+
+  --key-bg: #dde1e7;
+  --key-text: #1d2330;
+
+  font: 16px/1.5 var(--sans);
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e8eaee;
+    --text-muted: #a3a9b5;
+    --bg: #14161c;
+    --surface: #1c1f27;
+    --border: #333844;
+    --border-strong: #5d6472;
+    --accent: #4fc3cd;
+    --accent-text: #0b1416;
+
+    --tile-correct-bg: #1b9aa5;
+    --tile-correct-text: #0b1416;
+    --tile-present-bg: #e2734f;
+    --tile-present-text: #1a0d08;
+    --tile-absent-bg: #2a2e37;
+    --tile-absent-text: #e8eaee;
+
+    --key-bg: #4a5060;
+    --key-text: #e8eaee;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

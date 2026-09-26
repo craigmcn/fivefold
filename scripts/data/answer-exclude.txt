@@ -1,0 +1,14 @@
+# Valid as guesses but never picked as answers: crude or sensitive words
+# from the answer list, plus words NYT itself pulled from rotation in 2022.
+agora
+fecal
+fibre
+grope
+horny
+kinky
+lynch
+pupal
+semen
+slave
+spunk
+wench
