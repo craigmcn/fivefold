@@ -7,18 +7,31 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:3170",
     trace: "on-first-retry",
   },
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /\.pwa\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3170" },
+    },
+    {
+      // The service worker only exists in a production build.
+      name: "pwa",
+      testMatch: /\.pwa\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3171" },
     },
   ],
-  webServer: {
-    command: "yarn dev",
-    url: "http://localhost:3170",
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      command: "yarn dev",
+      url: "http://localhost:3170",
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: "yarn vite build && yarn vite preview --port 3171 --strictPort",
+      url: "http://localhost:3171",
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
 });

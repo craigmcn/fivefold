@@ -63,19 +63,37 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   slate (absent), deliberately not NYT's green/yellow, and a blue–orange
   pairing that stays distinct under common colour blindness. All tile
   text meets 4.5:1.
+- **PWA:** `vite-plugin-pwa` (`generateSW`, `autoUpdate`) in
+  `vite.config.ts` precaches the whole build, word lists included (they're
+  bundled JS), so play is fully offline once the SW has installed; there are
+  no CDN dependencies to runtime-cache. `navigateFallback: null` stops the
+  Netlify root SW answering `/fivefold/` navigations with its own
+  `index.html`. `build:netlify` runs two separate `vite build`s, so each
+  output gets its own SW (no copy step, unlike sudoku). Manifest
+  `start_url`/`scope` are `.` so one manifest works at both bases. Icons in
+  `public/icons/` are rendered from `icon.svg` with `rsvg-convert`
+  (maskable/apple-touch variants use a full-bleed square); `favicon.ico`
+  via ImageMagick.
 
 ## Notes
 
 - `src/test/setup.ts` shims `localStorage` because Node 25+ defines its own
   (undefined without `--localstorage-file`), which blocks happy-dom's. CI
   runs Node 24 per `.node-version`.
-- E2E specs seed a known stage via `page.addInitScript({ content })` (a
-  string, so DOM globals don't leak into the Node-typed e2e tsconfig).
+- E2E specs seed a known stage via `seed()` in `e2e/seed.ts`
+  (`page.addInitScript({ content })`, a string, so DOM globals don't leak
+  into the Node-typed e2e tsconfig).
+- `*.pwa.spec.ts` run in a separate `pwa` Playwright project against
+  `vite preview` of a production build on port 3171 (the SW doesn't exist in
+  dev). Wait for `navigator.serviceWorker.controller` before going offline:
+  a first load is never served by its own installing worker.
+- Deployed to Netlify at https://endearing-blancmange-0cb3b7.netlify.app/
+  (`yarn build:netlify`, publish dir `netlify`). No GitHub Pages yet.
 - Word lists will drift as NYT adds answers; re-sync `answers.txt` from the
   wordle-helper repo's `words.ts` when needed.
 
 ## Open TODOs
 
 Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-PWA/offline, hints, seeded/shareable stages, daily stage, share text,
+hints, seeded/shareable stages, daily stage, share text,
 achievements, streaks, hard mode, definitions.
