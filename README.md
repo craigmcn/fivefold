@@ -4,7 +4,9 @@ A forgiving, endless five-letter word game. Words come in stages of ten, with
 a harder "boss" word at 5 (×2 points) and a hardest one at 10 (×3). Solving
 in one guess scores 60 points, dropping by 10 per guess; after six guesses you
 can keep going for no points, or reveal the word and move on. Progress and
-stats are saved in `localStorage`.
+stats are saved in `localStorage`, and it installs as an offline-capable PWA.
+
+Play it at <https://endearing-blancmange-0cb3b7.netlify.app/>.
 
 ## Development
 

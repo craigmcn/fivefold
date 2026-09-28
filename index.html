@@ -7,7 +7,27 @@
       name="description"
       content="A forgiving, endless five-letter word game played in ten-word stages."
     />
+    <meta
+      name="theme-color"
+      content="#fbfaf7"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#14161c"
+      media="(prefers-color-scheme: dark)"
+    />
     <title>Fivefold</title>
+
+    <!-- iOS honours the manifest's standalone display inconsistently; these
+         legacy tags reliably give a chrome-less launch from the home screen. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Fivefold" />
+
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 
     <script>
       (() =>
