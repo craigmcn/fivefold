@@ -26,6 +26,9 @@ import { clearSharedLink, readSharedLink, type SharedLink } from "./lib/share";
 import { pickStage } from "./lib/stage";
 import { loadState, saveState, type StageProgress } from "./lib/storage";
 
+const sameWords = (a: readonly string[], b: readonly string[]) =>
+  a.join() === b.join();
+
 // Only a stage with no guesses in it (or a finished one) is replaced without
 // asking; otherwise App confirms before throwing away progress.
 const isReplaceable = (stage: StageProgress | null): boolean =>
@@ -37,7 +40,10 @@ function init(shared: SharedLink): GameState {
   const saved = loadState();
   const words = shared && "words" in shared ? shared.words : null;
   let next = saved;
-  if (words && isReplaceable(saved.stage)) {
+  // Opening your own link (e.g. a bookmarked one) shouldn't replay a stage.
+  const alreadyPlaying =
+    words && saved.stage && sameWords(words, saved.stage.words);
+  if (words && !alreadyPlaying && isReplaceable(saved.stage)) {
     next = newStage(saved, { words, served: saved.served });
   } else if (!saved.stage) {
     next = newStage(saved, pickStage(saved.served));
@@ -50,9 +56,6 @@ function init(shared: SharedLink): GameState {
     rejections: 0,
   };
 }
-
-const sameWords = (a: readonly string[], b: readonly string[]) =>
-  a.join() === b.join();
 
 type Panel = "help" | "stats" | null;
 

@@ -41,6 +41,9 @@ export default defineConfig({
         // navigation; the default fallback would let the Netlify root's SW
         // answer /fivefold/ navigations with the root build's index.html.
         navigateFallback: null,
+        // Workbox's defaults plus ?stage=, so shared links still hit the
+        // precached index.html offline.
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^stage$/],
       },
     }),
   ],

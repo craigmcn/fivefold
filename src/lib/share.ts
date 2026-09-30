@@ -8,6 +8,9 @@ const ALL_ANSWERS = Object.values(ANSWERS).flat().sort();
 const INDEX = new Map(ALL_ANSWERS.map((w, i) => [w, i]));
 const RADIX = BigInt(ALL_ANSWERS.length);
 const CHECK_WIDTH = 2;
+// Real codes are ~24 chars; capping length keeps a crafted link from making
+// the BigInt decode below chew on megabytes before rejecting it.
+const MAX_CODE_LENGTH = 40;
 
 function listChecksum(): string {
   let hash = 0x811c9dc5;
@@ -31,6 +34,7 @@ export function encodeStage(words: readonly string[]): string {
 
 export function decodeStage(code: string): string[] | null {
   const normalised = code.trim().toLowerCase();
+  if (normalised.length > MAX_CODE_LENGTH) return null;
   if (!/^[0-9a-z]+$/.test(normalised)) return null;
   if (normalised.slice(0, CHECK_WIDTH) !== CHECKSUM) return null;
 
@@ -50,7 +54,11 @@ export function decodeStage(code: string): string[] | null {
 export const STAGE_PARAM = "stage";
 
 export function stageLink(words: readonly string[]): string {
-  const url = new URL(import.meta.env.BASE_URL, window.location.origin);
+  // BASE_URL is "./" in the relative-base build, so resolve it against the
+  // page itself, not the origin, or links would point at the site root.
+  const url = new URL(import.meta.env.BASE_URL, window.location.href);
+  url.search = "";
+  url.hash = "";
   url.searchParams.set(STAGE_PARAM, encodeStage(words));
   return url.toString();
 }

@@ -173,6 +173,26 @@ describe("App with a shared stage link", () => {
     expect(stored().stage).toMatchObject({ number: 1, words: SHARED });
   });
 
+  it("doesn't replay a finished stage when its own link is opened", () => {
+    const results = SHARED.map((answer) => ({
+      answer,
+      guesses: 1,
+      points: 60,
+      gaveUp: false,
+    }));
+    saveState(
+      seededState({
+        stage: { number: 3, words: SHARED, cursor: 9, guesses: [], results },
+      }),
+    );
+    visit(encodeStage(SHARED));
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: "Stage 3 complete" }),
+    ).toBeVisible();
+    expect(stored().stage.results).toHaveLength(10);
+  });
+
   it("asks before abandoning a stage in progress", async () => {
     saveState(
       seededState({

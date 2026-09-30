@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ANSWERS } from "../data/answers";
 import { STAGE_WORDS } from "../test/fixtures";
 import {
@@ -42,6 +42,7 @@ describe("stage codes", () => {
     expect(decodeStage(`${code}zzzz`)).toBeNull();
     // Too few digits decodes the tail words as the same (first) answer.
     expect(decodeStage(code.slice(0, 6))).toBeNull();
+    expect(decodeStage(code + "0".repeat(100_000))).toBeNull();
   });
 
   it("refuses words that aren't answers", () => {
@@ -50,12 +51,25 @@ describe("stage codes", () => {
 });
 
 describe("shared links", () => {
-  afterEach(() => window.history.replaceState(null, "", "/"));
+  afterEach(() => {
+    window.history.replaceState(null, "", "/");
+    vi.unstubAllEnvs();
+  });
 
   it("builds a link that reads back to the same words", () => {
     const link = new URL(stageLink(STAGE_WORDS));
     window.history.replaceState(null, "", link.pathname + link.search);
     expect(readSharedLink()).toEqual({ words: STAGE_WORDS });
+  });
+
+  it("links to the page the game is served from, minus its query", () => {
+    // Production's relative base; Vitest itself serves from "/".
+    vi.stubEnv("BASE_URL", "./");
+    window.history.replaceState(null, "", "/fivefold/?x=1#top");
+    const link = new URL(stageLink(STAGE_WORDS));
+    expect(link.pathname).toBe("/fivefold/");
+    expect([...link.searchParams.keys()]).toEqual(["stage"]);
+    expect(link.hash).toBe("");
   });
 
   it("flags an unreadable code and returns null with no code", () => {
