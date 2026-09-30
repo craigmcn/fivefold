@@ -22,24 +22,51 @@ import {
   STAGE_LENGTH,
   stageScore,
 } from "./lib/scoring";
+import { clearSharedLink, readSharedLink, type SharedLink } from "./lib/share";
 import { pickStage } from "./lib/stage";
-import { loadState, saveState } from "./lib/storage";
+import { loadState, saveState, type StageProgress } from "./lib/storage";
 
-function init(): GameState {
+// Only a stage with no guesses in it (or a finished one) is replaced without
+// asking; otherwise App confirms before throwing away progress.
+const isReplaceable = (stage: StageProgress | null): boolean =>
+  !stage ||
+  isStageDone(stage) ||
+  (stage.results.length === 0 && stage.guesses.length === 0);
+
+function init(shared: SharedLink): GameState {
   const saved = loadState();
+  const words = shared && "words" in shared ? shared.words : null;
+  let next = saved;
+  if (words && isReplaceable(saved.stage)) {
+    next = newStage(saved, { words, served: saved.served });
+  } else if (!saved.stage) {
+    next = newStage(saved, pickStage(saved.served));
+  }
   return {
-    saved: saved.stage ? saved : newStage(saved, pickStage(saved.served)),
+    saved: next,
     input: "",
-    message: null,
+    message:
+      shared && "invalid" in shared ? "That stage link isn't valid" : null,
     rejections: 0,
   };
 }
 
+const sameWords = (a: readonly string[], b: readonly string[]) =>
+  a.join() === b.join();
+
 type Panel = "help" | "stats" | null;
 
 function App() {
-  const [state, dispatch] = useReducer(gameReducer, undefined, init);
+  const [shared] = useState(readSharedLink);
+  const [state, dispatch] = useReducer(gameReducer, shared, init);
   const [panel, setPanel] = useState<Panel>(null);
+  const [pendingShare, setPendingShare] = useState(() =>
+    shared &&
+    "words" in shared &&
+    !sameWords(shared.words, state.saved.stage!.words)
+      ? shared.words
+      : null,
+  );
   const { saved, input, message, rejections } = state;
   const stage = saved.stage!;
   const answer = stage.words[stage.cursor];
@@ -47,6 +74,13 @@ function App() {
   const stageDone = isStageDone(stage);
 
   useEffect(() => saveState(saved), [saved]);
+  useEffect(clearSharedLink, []);
+
+  function acceptShare() {
+    if (!pendingShare) return;
+    dispatch({ type: "newStage", words: pendingShare, served: saved.served });
+    setPendingShare(null);
+  }
 
   const advance = useCallback(() => {
     if (!wordDone) return;
@@ -127,7 +161,11 @@ function App() {
         />
 
         {stageDone && wordDone ? (
-          <StageSummary number={stage.number} results={stage.results} />
+          <StageSummary
+            number={stage.number}
+            words={stage.words}
+            results={stage.results}
+          />
         ) : (
           <Board
             answer={answer}
@@ -203,6 +241,28 @@ function App() {
         onClose={() => setPanel(null)}
       >
         <StatsPanel stats={saved.stats} />
+      </Modal>
+      <Modal
+        open={pendingShare !== null}
+        title="Play a shared stage?"
+        onClose={() => setPendingShare(null)}
+      >
+        <p>
+          You're partway through stage {stage.number}. Playing the shared stage
+          abandons it, though words you've already finished stay in your stats.
+        </p>
+        <div className="modal-actions">
+          <button type="button" className="primary" onClick={acceptShare}>
+            Play shared stage
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setPendingShare(null)}
+          >
+            Keep my stage
+          </button>
+        </div>
       </Modal>
     </div>
   );

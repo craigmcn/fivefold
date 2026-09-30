@@ -41,6 +41,16 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   and ×3 (word 10). +100 clean-stage bonus if all ten words solved in ≤6
   guesses with no reveals. "Reveal the word" appears only once guesses stop
   scoring.
+- **Shared stages:** `src/lib/share.ts` encodes a stage's ten words as
+  base36 mixed-radix indices into the alphabetised answer list, prefixed with
+  a 2-char checksum of that list (`?stage=<code>`, ~24 chars). Words are
+  encoded, not a PRNG seed, because endless stages depend on `served`
+  history, so a seed alone can't reproduce them. Regenerating the answer list
+  changes the checksum and invalidates old links on purpose. App reads the
+  param during init and strips it in an effect (StrictMode-safe). A link
+  replaces an untouched or finished stage silently and asks before
+  abandoning one in progress. A replacement keeps the stage number, and its
+  words count toward `served` like any other.
 - **Game state:** `src/lib/game.ts` is a pure reducer (letter / backspace /
   submit / giveUp / nextWord / newStage). `StageProgress.cursor` stays on a
   finished word until "next word" so its board remains visible; a word is
@@ -95,5 +105,5 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 ## Open TODOs
 
 Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-hints, seeded/shareable stages, daily stage, share text,
+hints, daily stage, share text,
 achievements, streaks, hard mode, definitions.

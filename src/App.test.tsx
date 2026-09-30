@@ -1,8 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 import App from "./App";
+import { encodeStage } from "./lib/share";
 import { saveState } from "./lib/storage";
 import { seededState, STAGE_WORDS } from "./test/fixtures";
 
@@ -121,5 +122,100 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "Stats" }));
     expect(screen.getByRole("heading", { name: "Statistics" })).toBeVisible();
     expect(screen.getByText("Words played")).toBeVisible();
+  });
+
+  it("offers a link to the finished stage", async () => {
+    saveState(
+      seededState({
+        stage: {
+          number: 1,
+          words: STAGE_WORDS,
+          cursor: 9,
+          guesses: ["dross"],
+          results: STAGE_WORDS.map((answer) => ({
+            answer,
+            guesses: 1,
+            points: 60,
+            gaveUp: false,
+          })),
+        },
+      }),
+    );
+    render(<App />);
+    const link = screen.getByRole<HTMLInputElement>("textbox", {
+      name: /Challenge a friend/,
+    });
+    expect(link.value).toContain(`?stage=${encodeStage(STAGE_WORDS)}`);
+  });
+});
+
+describe("App with a shared stage link", () => {
+  const SHARED = [...STAGE_WORDS].reverse();
+  const visit = (code: string) =>
+    window.history.replaceState(null, "", `/?stage=${code}`);
+
+  beforeEach(() => window.localStorage.clear());
+  afterEach(() => window.history.replaceState(null, "", "/"));
+
+  it("starts the shared stage for a new player and cleans the address", () => {
+    visit(encodeStage(SHARED));
+    render(<App />);
+    expect(screen.getByText(/Stage 1 · Word 1 of 10/)).toBeVisible();
+    expect(stored().stage.words).toEqual(SHARED);
+    expect(window.location.search).toBe("");
+  });
+
+  it("replaces an untouched stage without asking", () => {
+    saveState(seededState());
+    visit(encodeStage(SHARED));
+    render(<App />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(stored().stage).toMatchObject({ number: 1, words: SHARED });
+  });
+
+  it("asks before abandoning a stage in progress", async () => {
+    saveState(
+      seededState({
+        stage: { ...seededState().stage!, guesses: ["crane"] },
+      }),
+    );
+    visit(encodeStage(SHARED));
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(
+      screen.getByRole("heading", { name: "Play a shared stage?" }),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Keep my stage" }));
+    expect(stored().stage.words).toEqual(STAGE_WORDS);
+    expect(stored().stage.guesses).toEqual(["crane"]);
+  });
+
+  it("switches to the shared stage when confirmed", async () => {
+    saveState(
+      seededState({
+        stage: { ...seededState().stage!, guesses: ["crane"] },
+      }),
+    );
+    visit(encodeStage(SHARED));
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Play shared stage" }));
+    expect(stored().stage).toMatchObject({
+      number: 1,
+      words: SHARED,
+      guesses: [],
+    });
+  });
+
+  it("reports an invalid link and keeps the current stage", () => {
+    saveState(seededState());
+    visit("garbage");
+    render(<App />);
+    expect(
+      screen.getByText("That stage link isn't valid", { selector: ".message" }),
+    ).toBeVisible();
+    expect(stored().stage.words).toEqual(STAGE_WORDS);
   });
 });

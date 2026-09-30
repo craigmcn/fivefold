@@ -69,6 +69,18 @@ main {
   cursor: pointer;
 }
 
+.secondary {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .muted {
   color: var(--text-muted);
 }
@@ -338,6 +350,41 @@ main {
 
 .stage-summary tfoot {
   font-weight: 700;
+}
+
+.share-link {
+  margin-bottom: 0.25rem;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.share-link input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  font: inherit;
+  font-size: 0.85rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.share-link .muted {
+  min-height: 1.5em;
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 .summary-word {
