@@ -20,7 +20,9 @@
     <title>Fivefold</title>
 
     <!-- iOS honours the manifest's standalone display inconsistently; these
-         legacy tags reliably give a chrome-less launch from the home screen. -->
+         legacy tags reliably give a chrome-less launch from the home screen.
+         Chrome wants the standard name too, or it logs a deprecation warning. -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fivefold" />
