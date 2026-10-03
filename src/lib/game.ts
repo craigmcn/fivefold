@@ -41,7 +41,12 @@ export function newStage(
   saved: SavedState,
   { words, served }: PickedStage,
 ): SavedState {
-  const number = (saved.stage?.number ?? saved.stats.stagesCompleted) + 1;
+  // A shared stage can replace an unfinished one; it takes over that number
+  // rather than leaving a gap.
+  const number =
+    saved.stage && !isStageDone(saved.stage)
+      ? saved.stage.number
+      : (saved.stage?.number ?? saved.stats.stagesCompleted) + 1;
   return {
     ...saved,
     served,

@@ -22,4 +22,11 @@ test("reloads and plays offline once the service worker is in control", async ({
   await page.keyboard.type("crane");
   await page.keyboard.press("Enter");
   await expect(page.getByText("Guess 2 is worth 50 points")).toBeVisible();
+
+  // Shared links carry ?stage=, which must still match the precached page.
+  await page.goto("/?stage=nope");
+  await expect(page.getByRole("heading", { name: "Fivefold" })).toBeVisible();
+  await expect(page.locator(".message")).toHaveText(
+    "That stage link isn't valid",
+  );
 });

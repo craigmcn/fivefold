@@ -132,4 +132,14 @@ describe("gameReducer", () => {
     state = gameReducer(state, { type: "newStage", words: WORDS, served: [] });
     expect(state.saved.stage).toMatchObject({ number: 2, cursor: 0 });
   });
+
+  it("keeps the number when a new stage replaces an unfinished one", () => {
+    let state = typeWord(start(), "stand");
+    state = gameReducer(state, { type: "newStage", words: WORDS, served: [] });
+    expect(state.saved.stage).toMatchObject({
+      number: 1,
+      cursor: 0,
+      results: [],
+    });
+  });
 });

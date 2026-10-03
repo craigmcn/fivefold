@@ -41,3 +41,41 @@ test("shakes off invalid words without spending a guess", async ({ page }) => {
     page.getByRole("img", { name: "Guess 1: Q Z X V J" }),
   ).toBeVisible();
 });
+
+test("a finished stage's link gives a friend the same words", async ({
+  page,
+  browser,
+}) => {
+  await seed(page);
+  await page.goto("/");
+  await expect(page.getByText("Guess 1 is worth 60 points")).toBeVisible();
+  for (const [i, word] of WORDS.entries()) {
+    await page.keyboard.type(word);
+    await page.keyboard.press("Enter");
+    if (i < WORDS.length - 1) {
+      await page.keyboard.press("Enter");
+      await expect(page.getByText(`Word ${i + 2} of 10`)).toBeVisible();
+    }
+  }
+  const link = await page
+    .getByRole("textbox", { name: /Challenge a friend/ })
+    .inputValue();
+
+  // A fresh context has empty storage, like a friend's browser; the friend is
+  // midway through their own random stage, so the link asks first.
+  const friend = await (await browser.newContext()).newPage();
+  await friend.goto("/");
+  await expect(friend.getByText("Guess 1 is worth 60 points")).toBeVisible();
+  await friend.keyboard.type("crane");
+  await friend.keyboard.press("Enter");
+  await friend.goto(link);
+  await expect(
+    friend.getByRole("button", { name: "Play shared stage" }),
+  ).toBeFocused();
+  await friend.keyboard.press("Enter");
+  await expect(friend.getByText(/Stage 1 · Word 1 of 10/)).toBeVisible();
+  await expect(friend).not.toHaveURL(/stage=/);
+  await friend.keyboard.type(WORDS[0]);
+  await friend.keyboard.press("Enter");
+  await expect(friend.getByText("STAND in one! +60 points")).toBeVisible();
+});

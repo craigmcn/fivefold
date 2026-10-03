@@ -41,6 +41,10 @@ export function HowToPlay() {
         stage within {SCORED_GUESSES} guesses for a {CLEAN_STAGE_BONUS}-point
         bonus.
       </p>
+      <p>
+        Finished stages come with a link: send it to a friend and they play the
+        same {STAGE_LENGTH} words.
+      </p>
     </div>
   );
 }
