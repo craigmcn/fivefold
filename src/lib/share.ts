@@ -53,12 +53,17 @@ export function decodeStage(code: string): string[] | null {
 
 export const STAGE_PARAM = "stage";
 
-export function stageLink(words: readonly string[]): string {
+export function appLink(): string {
   // BASE_URL is "./" in the relative-base build, so resolve it against the
   // page itself, not the origin, or links would point at the site root.
   const url = new URL(import.meta.env.BASE_URL, window.location.href);
   url.search = "";
   url.hash = "";
+  return url.toString();
+}
+
+export function stageLink(words: readonly string[]): string {
+  const url = new URL(appLink());
   url.searchParams.set(STAGE_PARAM, encodeStage(words));
   return url.toString();
 }

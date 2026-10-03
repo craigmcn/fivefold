@@ -46,8 +46,9 @@ export function HowToPlay() {
         and a streak for every day in a row you finish it.
       </p>
       <p>
-        Finished endless stages come with a link: send it to a friend and they
-        play the same {STAGE_LENGTH} words.
+        After any stage you can share a spoiler-free summary of your results.
+        Finished endless stages also come with a link: send it to a friend and
+        they play the same {STAGE_LENGTH} words.
       </p>
     </div>
   );

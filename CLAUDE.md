@@ -51,6 +51,13 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   replaces an untouched or finished stage silently and asks before
   abandoning one in progress. A replacement keeps the stage number, and its
   words count toward `served` like any other.
+- **Share text:** `src/lib/shareText.ts` builds a spoiler-free summary
+  (title, score, one row per word: ⬛ per missed guess then 🟦 scored /
+  🟧 unscored / ❌ revealed, points, boss ×N, clean bonus line) ending in
+  `stageLink` for endless or `appLink` for daily. Blue/orange stand in for
+  teal/coral (no teal emoji). `StageSummary`'s Share results button uses
+  `navigator.share` where present (AbortError = dismissed, silent), else the
+  clipboard.
 - **Daily stage:** `src/lib/daily.ts`. `dayNumber()` counts local calendar
   days from 2026-10-01 (Daily #1, also the floor for clocks set earlier)
   via `Date.UTC`, so DST can't skew it;
@@ -128,5 +135,4 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 ## Open TODOs
 
 Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-hints, share text,
-achievements, streaks, hard mode, definitions.
+hints, achievements, streaks, hard mode, definitions.

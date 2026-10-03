@@ -5,10 +5,12 @@ import {
   stageScore,
   type WordResult,
 } from "../lib/scoring";
-import { stageLink } from "../lib/share";
+import { appLink, stageLink } from "../lib/share";
+import { shareText } from "../lib/shareText";
 
 interface StageSummaryProps {
-  title: string;
+  // "Daily #3" or "Stage 4"; used in the heading and the share text.
+  label: string;
   // Omitted for daily stages: everyone already has them, so a link would
   // only spoil a friend's daily.
   shareWords?: readonly string[];
@@ -56,15 +58,61 @@ function ShareLink({ words }: { words: readonly string[] }) {
   );
 }
 
+type ShareState = "idle" | "copied" | "failed";
+
+// Web Share where it exists (mostly phones), else the clipboard. Dismissing
+// the share sheet throws AbortError, which isn't a failure worth reporting.
+function ShareResults({ text }: { text: string }) {
+  const [share, setShare] = useState<ShareState>("idle");
+
+  async function shareResults() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShare("copied");
+    } catch {
+      setShare("failed");
+    }
+  }
+
+  return (
+    <div className="share-results">
+      <button type="button" className="secondary" onClick={shareResults}>
+        Share results
+      </button>
+      <p className="muted" aria-live="polite">
+        {share === "copied" && "Results copied to the clipboard."}
+        {share === "failed" && "Couldn't share or copy your results."}
+      </p>
+    </div>
+  );
+}
+
 export function StageSummary({
-  title,
+  label,
   shareWords,
   results,
 }: StageSummaryProps) {
   const clean = isCleanStage(results);
   return (
     <section className="stage-summary" aria-labelledby="stage-summary-title">
-      <h2 id="stage-summary-title">{title}</h2>
+      <h2 id="stage-summary-title">{label} complete</h2>
+      <ShareResults
+        text={shareText(
+          label,
+          results,
+          shareWords ? stageLink(shareWords) : appLink(),
+        )}
+      />
       {shareWords && <ShareLink words={shareWords} />}
       <table>
         <thead>

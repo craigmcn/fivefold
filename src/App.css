@@ -385,6 +385,16 @@ main {
   font-weight: 700;
 }
 
+.share-results {
+  text-align: center;
+}
+
+.share-results .muted {
+  min-height: 1.5em;
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
 .share-link {
   margin-bottom: 0.25rem;
 }
