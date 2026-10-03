@@ -4,9 +4,15 @@ import type { Stats } from "../lib/storage";
 interface StatsPanelProps {
   stats: Stats;
   extraTiles?: readonly [string, number][];
+  // What one completed stage is called in this mode's tiles.
+  unit?: "stage" | "daily";
 }
 
-export function StatsPanel({ stats, extraTiles = [] }: StatsPanelProps) {
+export function StatsPanel({
+  stats,
+  extraTiles = [],
+  unit = "stage",
+}: StatsPanelProps) {
   const solved = Object.entries(stats.guessHistogram);
   const solvedCount = solved.reduce((sum, [, n]) => sum + n, 0);
   const average =
@@ -33,10 +39,10 @@ export function StatsPanel({ stats, extraTiles = [] }: StatsPanelProps) {
   const tiles: [string, string | number][] = [
     ...extraTiles,
     ["Words played", stats.wordsPlayed],
-    ["Stages", stats.stagesCompleted],
-    ["Clean stages", stats.cleanStages],
+    [unit === "daily" ? "Dailies completed" : "Stages", stats.stagesCompleted],
+    [`Clean ${unit === "daily" ? "dailies" : "stages"}`, stats.cleanStages],
     ["Total points", stats.totalPoints],
-    ["Best stage", stats.bestStageScore],
+    [`Best ${unit}`, stats.bestStageScore],
     ["Avg guesses", average],
   ];
 

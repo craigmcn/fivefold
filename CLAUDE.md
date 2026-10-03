@@ -52,7 +52,8 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   abandoning one in progress. A replacement keeps the stage number, and its
   words count toward `served` like any other.
 - **Daily stage:** `src/lib/daily.ts`. `dayNumber()` counts local calendar
-  days from 2026-10-01 (Daily #1) via `Date.UTC`, so DST can't skew it;
+  days from 2026-10-01 (Daily #1, also the floor for clocks set earlier)
+  via `Date.UTC`, so DST can't skew it;
   `dailyWords(day)` runs `pickStage([], mulberry32(seed))`, ignoring
   `served`, so everyone gets the same words. The stage's `number` is the day
   number. Endless and daily each keep their own stage and `Stats`; both feed

@@ -316,6 +316,20 @@ describe("App in daily mode", () => {
     expect(stored().stage.guesses).toEqual(["crane"]);
   });
 
+  it("has no detectable accessibility violations on a finished daily", async () => {
+    saveState(
+      seededState({
+        mode: "daily",
+        daily: { ...emptyDaily(), stage: finished(3, dailyWords(3)) },
+      }),
+    );
+    const { container } = render(<App />);
+    expect(
+      screen.getByRole("button", { name: "Back to endless" }),
+    ).toBeVisible();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
   it("moves on to the new day's stage when reopened tomorrow", () => {
     saveState(
       seededState({
@@ -370,6 +384,9 @@ describe("App in daily mode", () => {
     expect(
       within(dialog).getByText("Best streak").nextSibling,
     ).toHaveTextContent("6");
+    expect(within(dialog).getByText("Dailies completed")).toBeVisible();
+    expect(within(dialog).getByText("Best daily")).toBeVisible();
+    expect(within(dialog).queryByText("Stages")).not.toBeInTheDocument();
   });
 
   it("sends a shared link to endless play even from daily mode", () => {

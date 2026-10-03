@@ -311,6 +311,7 @@ function App() {
         <StatsPanel
           stats={daily ? saved.daily.stats : saved.stats}
           extraTiles={streakTiles}
+          unit={daily ? "daily" : "stage"}
         />
       </Modal>
       <Modal

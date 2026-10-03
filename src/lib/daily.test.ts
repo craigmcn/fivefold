@@ -11,6 +11,11 @@ describe("dayNumber", () => {
     expect(dayNumber(new Date(2027, 9, 1))).toBe(366);
   });
 
+  it("never drops below Daily #1 on a clock set before launch", () => {
+    expect(dayNumber(new Date(2026, 8, 30))).toBe(1);
+    expect(dayNumber(new Date(2020, 0, 1))).toBe(1);
+  });
+
   it("stays one day apart across daylight-saving changes", () => {
     for (const [y, m, d] of [
       [2026, 10, 1],

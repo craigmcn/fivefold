@@ -5,9 +5,11 @@ import { pickStage } from "./stage";
 const EPOCH = Date.UTC(2026, 9, 1);
 const DAY_MS = 86_400_000;
 
+// Floored at 1 so a device clock set before launch can't show "Daily #0"
+// or a negative number.
 export function dayNumber(date: Date = new Date()): number {
   const today = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-  return Math.round((today - EPOCH) / DAY_MS) + 1;
+  return Math.max(1, Math.round((today - EPOCH) / DAY_MS) + 1);
 }
 
 // Small, well-mixed 32-bit PRNG; quality only needs to beat obvious patterns.
