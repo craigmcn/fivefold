@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activeStage,
   gameReducer,
   isStageDone,
   isWordDone,
@@ -141,5 +142,62 @@ describe("gameReducer", () => {
       cursor: 0,
       results: [],
     });
+  });
+});
+
+describe("daily mode", () => {
+  const DAILY = [...WORDS].reverse();
+  const startDaily = (state: GameState, day = 7) =>
+    gameReducer(state, { type: "startDaily", day, words: DAILY });
+
+  it("plays the daily stage without touching the endless one", () => {
+    let state = typeWord(start(), "crane");
+    state = startDaily(state);
+    expect(state.saved.mode).toBe("daily");
+    expect(activeStage(state.saved)).toMatchObject({ number: 7, words: DAILY });
+
+    state = typeWord(state, "dross");
+    expect(state.saved.daily.stats.wordsPlayed).toBe(1);
+    expect(state.saved.stats.wordsPlayed).toBe(0);
+    expect(state.saved.served).toContain("dross");
+
+    state = gameReducer(state, { type: "setMode", mode: "endless" });
+    expect(activeStage(state.saved)!.guesses).toEqual(["crane"]);
+  });
+
+  it("doesn't restart a day that's already been started", () => {
+    let state = typeWord(startDaily(start()), "dross");
+    state = gameReducer(state, { type: "setMode", mode: "endless" });
+    state = startDaily(state);
+    expect(state.saved.daily.stage!.results).toHaveLength(1);
+  });
+
+  it("records the streak when the daily stage is completed", () => {
+    let state = startDaily(start());
+    DAILY.forEach((word, i) => {
+      state = typeWord(state, word);
+      if (i < DAILY.length - 1)
+        state = gameReducer(state, { type: "nextWord" });
+    });
+    expect(state.saved.daily).toMatchObject({
+      streak: 1,
+      lastCompleted: 7,
+      stats: { stagesCompleted: 1, cleanStages: 1 },
+    });
+    expect(state.saved.stats.stagesCompleted).toBe(0);
+  });
+
+  it("keeps typed letters when the current mode is picked again", () => {
+    let state = startDaily(start());
+    state = gameReducer(state, { type: "letter", letter: "d" });
+    state = startDaily(state);
+    state = gameReducer(state, { type: "setMode", mode: "daily" });
+    expect(state.input).toBe("d");
+  });
+
+  it("returns to endless mode when a new endless stage starts", () => {
+    let state = startDaily(start());
+    state = gameReducer(state, { type: "newStage", words: WORDS, served: [] });
+    expect(state.saved.mode).toBe("endless");
   });
 });

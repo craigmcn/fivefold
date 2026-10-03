@@ -51,22 +51,42 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   replaces an untouched or finished stage silently and asks before
   abandoning one in progress. A replacement keeps the stage number, and its
   words count toward `served` like any other.
+- **Daily stage:** `src/lib/daily.ts`. `dayNumber()` counts local calendar
+  days from 2026-10-01 (Daily #1, also the floor for clocks set earlier)
+  via `Date.UTC`, so DST can't skew it;
+  `dailyWords(day)` runs `pickStage([], mulberry32(seed))`, ignoring
+  `served`, so everyone gets the same words. The stage's `number` is the day
+  number. Endless and daily each keep their own stage and `Stats`; both feed
+  `served`. Opening the app in daily mode on a later day starts that day's
+  stage; a finished daily shows its summary (no share link, which would
+  spoil a friend's daily) until then. Streak = consecutive days with a
+  completed daily (`recordDailyStreak`); `currentStreak` reads it as 0 once
+  a day is missed. Shared links always switch to endless.
 - **Game state:** `src/lib/game.ts` is a pure reducer (letter / backspace /
-  submit / giveUp / nextWord / newStage). `StageProgress.cursor` stays on a
+  submit / giveUp / nextWord / newStage). Actions act on the active mode's stage
+  (`activeStage`); `setMode`/`startDaily` switch modes. App reads the active
+  stage inline, not via `activeStage()`, because the React Compiler lint only
+  treats direct reads of reducer state as frozen. `StageProgress.cursor` stays on a
   finished word until "next word" so its board remains visible; a word is
   done when `results.length > cursor`. Randomness (`pickStage`) happens in
   the App event handler, never in the reducer.
 - **Persistence:** `src/lib/storage.ts`: one versioned `localStorage` key
-  (`fivefold`, `version: 1`) holding stats, served answers and the stage in
-  progress. Unknown versions or corrupt data reset to empty, and a
-  malformed saved stage is dropped (stats kept) rather than crashing; bump `VERSION` and add a migration if the shape changes.
+  (`fivefold`, `version: 2`) holding the mode, endless stats, served
+  answers and stage, and a `daily` block (stage, stats, streak). Version 1
+  saves load as endless play with empty daily state. Unknown versions or
+  corrupt data reset to empty, and a malformed saved stage or daily field is
+  dropped (the rest kept) rather than crashing; bump `VERSION` and add a
+  migration if the shape changes.
 - **Evaluation:** `src/lib/evaluate.ts`: two-pass Wordle scoring so
   duplicate letters are handled correctly; `keyboardStatuses` keeps each
   letter's best status for the on-screen keyboard.
 - **UI:** `src/App.tsx` wires the reducer to a window `keydown` listener
   (skipped while a `<dialog>` is open, and for Enter/Space on a focused
-  button). Components in `src/components/`. On-screen keys
-  `preventDefault` on mousedown so they never hold focus. The board scrolls
+  button). Components in `src/components/`. On-screen keys and the
+  Endless/Daily switch `preventDefault` on mousedown so they never hold
+  focus (else Enter re-presses them). `Modal` focuses a `[data-autofocus]`
+  child after `showModal()`, since React's `autoFocus` fires while the
+  dialog is still closed. The board scrolls
   internally past six rows (`#fivefold` is fixed at `100dvh`).
 - **Theming:** `src/index.css` tokens with a `prefers-color-scheme: dark`
   override; no manual toggle. Palette is teal (correct) / coral (present) /
@@ -92,7 +112,10 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   runs Node 24 per `.node-version`.
 - E2E specs seed a known stage via `seed()` in `e2e/seed.ts`
   (`page.addInitScript({ content })`, a string, so DOM globals don't leak
-  into the Node-typed e2e tsconfig).
+  into the Node-typed e2e tsconfig). The seed is still a version 1 save, so
+  it also exercises the v1→v2 migration. The e2e tsconfig can't import
+  `src/` (nodenext resolution), so the daily spec pins the date with
+  `page.clock.setFixedTime` and reads the day's words from localStorage.
 - `*.pwa.spec.ts` run in a separate `pwa` Playwright project against
   `vite preview` of a production build on port 3171 (the SW doesn't exist in
   dev). Wait for `navigator.serviceWorker.controller` before going offline:
@@ -105,5 +128,5 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 ## Open TODOs
 
 Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-hints, daily stage, share text,
+hints, share text,
 achievements, streaks, hard mode, definitions.

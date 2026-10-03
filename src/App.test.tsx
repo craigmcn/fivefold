@@ -1,10 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import App from "./App";
+import { dailyWords } from "./lib/daily";
 import { encodeStage } from "./lib/share";
-import { saveState } from "./lib/storage";
+import { emptyDaily, saveState } from "./lib/storage";
 import { seededState, STAGE_WORDS } from "./test/fixtures";
 
 const stored = () => JSON.parse(window.localStorage.getItem("fivefold")!);
@@ -120,7 +121,9 @@ describe("App", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: "Stats" }));
-    expect(screen.getByRole("heading", { name: "Statistics" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Endless statistics" }),
+    ).toBeVisible();
     expect(screen.getByText("Words played")).toBeVisible();
   });
 
@@ -268,5 +271,134 @@ describe("App with a shared stage link", () => {
       screen.getByText("That stage link isn't valid", { selector: ".message" }),
     ).toBeVisible();
     expect(stored().stage.words).toEqual(STAGE_WORDS);
+  });
+});
+
+describe("App in daily mode", () => {
+  // Only Date is faked, so userEvent's timers still run.
+  const setToday = (day: number) => vi.setSystemTime(new Date(2026, 9, day, 9));
+  const finished = (number: number, words: string[]) => ({
+    number,
+    words,
+    cursor: 9,
+    guesses: [words[9]],
+    results: words.map((answer) => ({
+      answer,
+      guesses: 1,
+      points: 60,
+      gaveUp: false,
+    })),
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    setToday(3);
+    window.localStorage.clear();
+    saveState(seededState());
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("switches to today's daily and back without losing endless progress", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard("crane{Enter}");
+
+    await user.click(screen.getByRole("button", { name: "Daily" }));
+    expect(screen.getByText(/Daily #3 · Word 1 of 10/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Daily" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(stored().daily.stage.words).toEqual(dailyWords(3));
+
+    await user.click(screen.getByRole("button", { name: "Endless" }));
+    expect(screen.getByText(/Stage 1 · Word 1 of 10/)).toBeVisible();
+    expect(stored().stage.guesses).toEqual(["crane"]);
+  });
+
+  it("has no detectable accessibility violations on a finished daily", async () => {
+    saveState(
+      seededState({
+        mode: "daily",
+        daily: { ...emptyDaily(), stage: finished(3, dailyWords(3)) },
+      }),
+    );
+    const { container } = render(<App />);
+    expect(
+      screen.getByRole("button", { name: "Back to endless" }),
+    ).toBeVisible();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("moves on to the new day's stage when reopened tomorrow", () => {
+    saveState(
+      seededState({
+        mode: "daily",
+        daily: { ...emptyDaily(), stage: finished(3, dailyWords(3)) },
+      }),
+    );
+    setToday(4);
+    render(<App />);
+    expect(screen.getByText(/Daily #4 · Word 1 of 10/)).toBeVisible();
+  });
+
+  it("finishes a daily without a share link and heads back to endless", async () => {
+    saveState(
+      seededState({
+        mode: "daily",
+        daily: { ...emptyDaily(), stage: finished(3, dailyWords(3)) },
+      }),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(
+      screen.getByRole("heading", { name: "Daily #3 complete" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Back to endless" }));
+    expect(screen.getByText(/Stage 1 · Word 1 of 10/)).toBeVisible();
+  });
+
+  it("shows the daily streak in daily statistics", async () => {
+    saveState(
+      seededState({
+        mode: "daily",
+        daily: {
+          ...emptyDaily(),
+          stage: finished(3, dailyWords(3)),
+          streak: 4,
+          maxStreak: 6,
+          lastCompleted: 3,
+        },
+      }),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Stats" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Daily statistics" });
+    expect(
+      within(dialog).getByText("Current streak").nextSibling,
+    ).toHaveTextContent("4");
+    expect(
+      within(dialog).getByText("Best streak").nextSibling,
+    ).toHaveTextContent("6");
+    expect(within(dialog).getByText("Dailies completed")).toBeVisible();
+    expect(within(dialog).getByText("Best daily")).toBeVisible();
+    expect(within(dialog).queryByText("Stages")).not.toBeInTheDocument();
+  });
+
+  it("sends a shared link to endless play even from daily mode", () => {
+    saveState(seededState({ mode: "daily" }));
+    window.history.replaceState(
+      null,
+      "",
+      `/?stage=${encodeStage([...STAGE_WORDS].reverse())}`,
+    );
+    render(<App />);
+    expect(screen.getByText(/Stage 1 · Word 1 of 10/)).toBeVisible();
+    expect(stored().stage.words).toEqual([...STAGE_WORDS].reverse());
+    window.history.replaceState(null, "", "/");
   });
 });
