@@ -42,8 +42,12 @@ export function HowToPlay() {
         bonus.
       </p>
       <p>
-        Finished stages come with a link: send it to a friend and they play the
-        same {STAGE_LENGTH} words.
+        Daily mode gives everyone the same stage each day, with its own stats
+        and a streak for every day in a row you finish it.
+      </p>
+      <p>
+        Finished endless stages come with a link: send it to a friend and they
+        play the same {STAGE_LENGTH} words.
       </p>
     </div>
   );

@@ -1,7 +1,12 @@
 import { SCORED_GUESSES } from "../lib/scoring";
 import type { Stats } from "../lib/storage";
 
-export function StatsPanel({ stats }: { stats: Stats }) {
+interface StatsPanelProps {
+  stats: Stats;
+  extraTiles?: readonly [string, number][];
+}
+
+export function StatsPanel({ stats, extraTiles = [] }: StatsPanelProps) {
   const solved = Object.entries(stats.guessHistogram);
   const solvedCount = solved.reduce((sum, [, n]) => sum + n, 0);
   const average =
@@ -26,6 +31,7 @@ export function StatsPanel({ stats }: { stats: Stats }) {
   const max = Math.max(1, ...bars.map((b) => b.count));
 
   const tiles: [string, string | number][] = [
+    ...extraTiles,
     ["Words played", stats.wordsPlayed],
     ["Stages", stats.stagesCompleted],
     ["Clean stages", stats.cleanStages],

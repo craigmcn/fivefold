@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  currentStreak,
+  emptyDaily,
   emptyState,
   emptyStats,
   loadState,
+  recordDailyStreak,
   recordStage,
   recordWord,
   saveState,
@@ -69,5 +72,78 @@ describe("storage", () => {
       totalPoints: 100,
       bestStageScore: 500,
     });
+  });
+
+  it("migrates version 1 saves to endless play with empty daily state", () => {
+    const stage = {
+      number: 4,
+      words: ["stand", "party", "crane", "flock", "shock"].concat([
+        "early",
+        "adorn",
+        "guild",
+        "taper",
+        "dross",
+      ]),
+      cursor: 0,
+      results: [],
+      guesses: ["crane"],
+    };
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({
+        version: 1,
+        stats: { ...emptyStats(), totalPoints: 120 },
+        served: ["stand"],
+        stage,
+      }),
+    );
+    expect(loadState()).toEqual({
+      ...emptyState(),
+      stats: { ...emptyStats(), totalPoints: 120 },
+      served: ["stand"],
+      stage,
+    });
+  });
+
+  it("resets malformed daily fields individually", () => {
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({
+        ...emptyState(),
+        mode: "sideways",
+        daily: { stage: "nope", streak: -2, maxStreak: 5, lastCompleted: 3 },
+      }),
+    );
+    const loaded = loadState();
+    expect(loaded.mode).toBe("endless");
+    expect(loaded.daily).toEqual({
+      ...emptyDaily(),
+      maxStreak: 5,
+      lastCompleted: 3,
+    });
+  });
+});
+
+describe("daily streaks", () => {
+  it("extends on consecutive days and restarts after a gap", () => {
+    let daily = recordDailyStreak(emptyDaily(), 5);
+    daily = recordDailyStreak(daily, 6);
+    expect(daily).toMatchObject({ streak: 2, maxStreak: 2, lastCompleted: 6 });
+    daily = recordDailyStreak(daily, 9);
+    expect(daily).toMatchObject({ streak: 1, maxStreak: 2, lastCompleted: 9 });
+  });
+
+  it("ignores a day that's already counted", () => {
+    const daily = recordDailyStreak(emptyDaily(), 5);
+    expect(recordDailyStreak(daily, 5)).toBe(daily);
+    expect(recordDailyStreak(daily, 4)).toBe(daily);
+  });
+
+  it("reads as zero once a day has been missed", () => {
+    const daily = recordDailyStreak(recordDailyStreak(emptyDaily(), 5), 6);
+    expect(currentStreak(daily, 6)).toBe(2);
+    expect(currentStreak(daily, 7)).toBe(2);
+    expect(currentStreak(daily, 8)).toBe(0);
+    expect(currentStreak(emptyDaily(), 8)).toBe(0);
   });
 });

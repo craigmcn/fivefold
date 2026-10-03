@@ -9,8 +9,10 @@ import {
 } from "./scoring";
 import type { PickedStage } from "./stage";
 import {
+  recordDailyStreak,
   recordStage,
   recordWord,
+  type Mode,
   type SavedState,
   type StageProgress,
 } from "./storage";
@@ -29,7 +31,9 @@ export type GameAction =
   | { type: "submit" }
   | { type: "giveUp" }
   | { type: "nextWord" }
-  | { type: "newStage"; words: string[]; served: string[] };
+  | { type: "newStage"; words: string[]; served: string[] }
+  | { type: "setMode"; mode: Mode }
+  | { type: "startDaily"; day: number; words: string[] };
 
 export const isWordDone = (stage: StageProgress): boolean =>
   stage.results.length > stage.cursor;
@@ -50,9 +54,26 @@ export function newStage(
   return {
     ...saved,
     served,
-    stage: { number, words, cursor: 0, results: [], guesses: [] },
+    stage: freshStage(number, words),
   };
 }
+
+export const activeStage = (saved: SavedState): StageProgress | null =>
+  saved.mode === "daily" ? saved.daily.stage : saved.stage;
+
+function withActiveStage(saved: SavedState, stage: StageProgress): SavedState {
+  return saved.mode === "daily"
+    ? { ...saved, daily: { ...saved.daily, stage } }
+    : { ...saved, stage };
+}
+
+const freshStage = (number: number, words: string[]): StageProgress => ({
+  number,
+  words,
+  cursor: 0,
+  results: [],
+  guesses: [],
+});
 
 function reject(state: GameState, message: string): GameState {
   return { ...state, message, rejections: state.rejections + 1 };
@@ -66,38 +87,73 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
     gaveUp,
   };
   const results = [...stage.results, result];
-  let stats = recordWord(state.saved.stats, result);
-  if (results.length === STAGE_LENGTH) {
+  const daily = state.saved.mode === "daily";
+  // Endless and daily keep separate stats; both feed served, since a word seen
+  // in either mode is one endless play should avoid repeating.
+  let stats = recordWord(
+    daily ? state.saved.daily.stats : state.saved.stats,
+    result,
+  );
+  const stageDone = results.length === STAGE_LENGTH;
+  if (stageDone) {
     const clean = isCleanStage(results);
     const bonus = clean ? CLEAN_STAGE_BONUS : 0;
     stats = recordStage(stats, stageScore(results), clean, bonus);
+  }
+  let saved: SavedState = {
+    ...state.saved,
+    served: state.saved.served.includes(result.answer)
+      ? state.saved.served
+      : [...state.saved.served, result.answer],
+  };
+  if (daily) {
+    const next = { ...saved.daily, stats };
+    saved = {
+      ...saved,
+      daily: stageDone ? recordDailyStreak(next, stage.number) : next,
+    };
+  } else {
+    saved = { ...saved, stats };
   }
   return {
     ...state,
     input: "",
     message: null,
-    saved: {
-      ...state.saved,
-      stats,
-      served: state.saved.served.includes(result.answer)
-        ? state.saved.served
-        : [...state.saved.served, result.answer],
-      stage: { ...stage, results },
-    },
+    saved: withActiveStage(saved, { ...stage, results }),
   };
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
-  const stage = state.saved.stage;
+  const cleared = { ...state, input: "", message: null };
 
-  if (action.type === "newStage") {
-    return {
-      ...state,
-      input: "",
-      message: null,
-      saved: newStage(state.saved, action),
-    };
+  switch (action.type) {
+    case "newStage":
+      return {
+        ...cleared,
+        saved: { ...newStage(state.saved, action), mode: "endless" },
+      };
+    case "setMode":
+      if (state.saved.mode === action.mode) return state;
+      return { ...cleared, saved: { ...state.saved, mode: action.mode } };
+    case "startDaily":
+      // Re-starting the same day would wipe a finished attempt.
+      if (state.saved.daily.stage?.number === action.day) {
+        return gameReducer(state, { type: "setMode", mode: "daily" });
+      }
+      return {
+        ...cleared,
+        saved: {
+          ...state.saved,
+          mode: "daily",
+          daily: {
+            ...state.saved.daily,
+            stage: freshStage(action.day, action.words),
+          },
+        },
+      };
   }
+
+  const stage = activeStage(state.saved);
   if (!stage) return state;
 
   const done = isWordDone(stage);
@@ -120,12 +176,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.input === stage.words[stage.cursor]) {
         return finishWord(state, next, false);
       }
-      return {
-        ...state,
-        input: "",
-        message: null,
-        saved: { ...state.saved, stage: next },
-      };
+      return { ...cleared, saved: withActiveStage(state.saved, next) };
     }
 
     case "giveUp":
@@ -135,10 +186,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!done || isStageDone(stage)) return state;
       return {
         ...state,
-        saved: {
-          ...state.saved,
-          stage: { ...stage, cursor: stage.cursor + 1, guesses: [] },
-        },
+        saved: withActiveStage(state.saved, {
+          ...stage,
+          cursor: stage.cursor + 1,
+          guesses: [],
+        }),
       };
   }
 }
