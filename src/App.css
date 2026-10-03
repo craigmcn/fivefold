@@ -252,6 +252,7 @@ main {
   min-height: 3.5rem;
   display: grid;
   place-items: center;
+  gap: 0.4rem;
   text-align: center;
   margin: 0.5rem 0;
 }

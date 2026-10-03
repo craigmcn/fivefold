@@ -221,12 +221,43 @@ describe("App with a shared stage link", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    expect(
+      screen.getByRole("button", { name: "Play shared stage" }),
+    ).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Play shared stage" }));
     expect(stored().stage).toMatchObject({
       number: 1,
       words: SHARED,
       guesses: [],
     });
+  });
+
+  it("keeps the next-stage button when an invalid link opens on a finished stage", async () => {
+    saveState(
+      seededState({
+        stage: {
+          number: 1,
+          words: STAGE_WORDS,
+          cursor: 9,
+          guesses: ["dross"],
+          results: STAGE_WORDS.map((answer) => ({
+            answer,
+            guesses: 1,
+            points: 60,
+            gaveUp: false,
+          })),
+        },
+      }),
+    );
+    visit("garbage");
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(
+      screen.getByText("That stage link isn't valid", { selector: ".message" }),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Start stage 2" }));
+    expect(screen.getByText(/Stage 2 · Word 1 of 10/)).toBeVisible();
   });
 
   it("reports an invalid link and keeps the current stage", () => {

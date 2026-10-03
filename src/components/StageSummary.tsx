@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   CLEAN_STAGE_BONUS,
   isCleanStage,
@@ -19,6 +19,7 @@ type CopyState = "idle" | "copied" | "failed";
 // hand where the Clipboard API is missing or refused (e.g. non-HTTPS).
 function ShareLink({ words }: { words: readonly string[] }) {
   const [copy, setCopy] = useState<CopyState>("idle");
+  const inputId = useId();
   const link = stageLink(words);
 
   async function copyLink() {
@@ -32,12 +33,10 @@ function ShareLink({ words }: { words: readonly string[] }) {
 
   return (
     <div className="share-link">
-      <label htmlFor="share-link-url">
-        Challenge a friend to these ten words:
-      </label>
+      <label htmlFor={inputId}>Challenge a friend to these ten words:</label>
       <div className="share-link-row">
         <input
-          id="share-link-url"
+          id={inputId}
           type="text"
           readOnly
           value={link}

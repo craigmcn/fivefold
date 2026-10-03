@@ -180,11 +180,14 @@ function App() {
         )}
 
         <div className="status">
-          {message ? (
+          {message && (
             <p className="message" aria-hidden="true">
               {message}
             </p>
-          ) : result ? (
+          )}
+          {/* A finished word's button must survive a message: once the word
+              is done nothing clears it, and the summary hides the keyboard. */}
+          {result ? (
             <WordComplete
               result={result}
               onNext={advance}
@@ -192,7 +195,7 @@ function App() {
                 stageDone ? `Start stage ${stage.number + 1}` : "Next word"
               }
             />
-          ) : worth > 0 ? (
+          ) : message ? null : worth > 0 ? (
             <p className="muted">
               Guess {guessNumber} is worth {worth} points
             </p>
@@ -255,7 +258,12 @@ function App() {
           abandons it, though words you've already finished stay in your stats.
         </p>
         <div className="modal-actions">
-          <button type="button" className="primary" onClick={acceptShare}>
+          <button
+            type="button"
+            className="primary"
+            onClick={acceptShare}
+            data-autofocus
+          >
             Play shared stage
           </button>
           <button
