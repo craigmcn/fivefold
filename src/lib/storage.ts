@@ -1,7 +1,7 @@
 import { STAGE_LENGTH, type WordResult } from "./scoring";
 
 const STORAGE_KEY = "fivefold";
-const VERSION = 1;
+const VERSION = 2;
 
 export interface Stats {
   wordsPlayed: number;
@@ -25,11 +25,27 @@ export interface StageProgress {
   guesses: string[];
 }
 
+export type Mode = "endless" | "daily";
+
+export interface DailyState {
+  // Its number is the day number (see lib/daily), so a stale stage is easy
+  // to spot when the date rolls over.
+  stage: StageProgress | null;
+  stats: Stats;
+  // Consecutive days with a completed daily, ending on lastCompleted.
+  streak: number;
+  maxStreak: number;
+  lastCompleted: number | null;
+}
+
 export interface SavedState {
   version: typeof VERSION;
+  mode: Mode;
+  // Endless play: stats, repeat-avoidance history and the stage in progress.
   stats: Stats;
   served: string[];
   stage: StageProgress | null;
+  daily: DailyState;
 }
 
 export const emptyStats = (): Stats => ({
@@ -42,11 +58,21 @@ export const emptyStats = (): Stats => ({
   guessHistogram: {},
 });
 
+export const emptyDaily = (): DailyState => ({
+  stage: null,
+  stats: emptyStats(),
+  streak: 0,
+  maxStreak: 0,
+  lastCompleted: null,
+});
+
 export const emptyState = (): SavedState => ({
   version: VERSION,
+  mode: "endless",
   stats: emptyStats(),
   served: [],
   stage: null,
+  daily: emptyDaily(),
 });
 
 const isWordList = (value: unknown): value is string[] =>
@@ -70,19 +96,41 @@ function isStage(value: unknown): value is StageProgress {
   );
 }
 
+const isCount = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0;
+
+function loadDaily(value: unknown): DailyState {
+  if (!value || typeof value !== "object") return emptyDaily();
+  const d = value as Partial<DailyState>;
+  return {
+    stage: isStage(d.stage) ? d.stage : null,
+    stats: { ...emptyStats(), ...d.stats },
+    streak: isCount(d.streak) ? d.streak : 0,
+    maxStreak: isCount(d.maxStreak) ? d.maxStreak : 0,
+    lastCompleted: Number.isInteger(d.lastCompleted) ? d.lastCompleted! : null,
+  };
+}
+
 // localStorage can throw (private mode, blocked storage) or hold data from a
-// future schema; either way, start fresh rather than crash the game.
+// future schema; either way, start fresh rather than crash the game. Version 1
+// had no daily mode, so it loads as endless play with empty daily state.
 export function loadState(): SavedState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return emptyState();
-    const parsed = JSON.parse(raw) as Partial<SavedState>;
-    if (parsed.version !== VERSION) return emptyState();
+    const parsed = JSON.parse(raw) as Partial<Omit<SavedState, "version">> & {
+      version?: unknown;
+    };
+    if (parsed.version !== 1 && parsed.version !== VERSION) {
+      return emptyState();
+    }
     return {
       version: VERSION,
+      mode: parsed.mode === "daily" ? "daily" : "endless",
       stats: { ...emptyStats(), ...parsed.stats },
       served: isWordList(parsed.served) ? parsed.served : [],
       stage: isStage(parsed.stage) ? parsed.stage : null,
+      daily: loadDaily(parsed.daily),
     };
   } catch {
     return emptyState();
@@ -110,6 +158,25 @@ export function recordWord(stats: Stats, result: WordResult): Stats {
     guessHistogram: histogram,
   };
 }
+
+// Streaks run on day numbers: completing the day after the last one extends
+// it, any gap restarts it, and replaying a completed day changes nothing.
+export function recordDailyStreak(daily: DailyState, day: number): DailyState {
+  if (daily.lastCompleted !== null && day <= daily.lastCompleted) return daily;
+  const streak = daily.lastCompleted === day - 1 ? daily.streak + 1 : 1;
+  return {
+    ...daily,
+    streak,
+    maxStreak: Math.max(daily.maxStreak, streak),
+    lastCompleted: day,
+  };
+}
+
+// The stored streak only goes stale lazily, so missing yesterday reads as 0.
+export const currentStreak = (daily: DailyState, today: number): number =>
+  daily.lastCompleted !== null && daily.lastCompleted >= today - 1
+    ? daily.streak
+    : 0;
 
 export function recordStage(
   stats: Stats,

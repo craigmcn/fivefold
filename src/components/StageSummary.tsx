@@ -8,8 +8,10 @@ import {
 import { stageLink } from "../lib/share";
 
 interface StageSummaryProps {
-  number: number;
-  words: readonly string[];
+  title: string;
+  // Omitted for daily stages: everyone already has them, so a link would
+  // only spoil a friend's daily.
+  shareWords?: readonly string[];
   results: readonly WordResult[];
 }
 
@@ -54,12 +56,16 @@ function ShareLink({ words }: { words: readonly string[] }) {
   );
 }
 
-export function StageSummary({ number, words, results }: StageSummaryProps) {
+export function StageSummary({
+  title,
+  shareWords,
+  results,
+}: StageSummaryProps) {
   const clean = isCleanStage(results);
   return (
     <section className="stage-summary" aria-labelledby="stage-summary-title">
-      <h2 id="stage-summary-title">Stage {number} complete</h2>
-      <ShareLink words={words} />
+      <h2 id="stage-summary-title">{title}</h2>
+      {shareWords && <ShareLink words={shareWords} />}
       <table>
         <thead>
           <tr>

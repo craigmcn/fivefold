@@ -9,6 +9,7 @@ import { StageTrack } from "./components/StageTrack";
 import { StatsPanel } from "./components/StatsPanel";
 import { WordComplete } from "./components/WordComplete";
 import { keyboardStatuses } from "./lib/evaluate";
+import { dailyWords, dayNumber } from "./lib/daily";
 import {
   gameReducer,
   isStageDone,
@@ -24,7 +25,13 @@ import {
 } from "./lib/scoring";
 import { clearSharedLink, readSharedLink, type SharedLink } from "./lib/share";
 import { pickStage } from "./lib/stage";
-import { loadState, saveState, type StageProgress } from "./lib/storage";
+import {
+  currentStreak,
+  loadState,
+  saveState,
+  type Mode,
+  type StageProgress,
+} from "./lib/storage";
 
 const sameWords = (a: readonly string[], b: readonly string[]) =>
   a.join() === b.join();
@@ -48,13 +55,27 @@ function init(shared: SharedLink): GameState {
   } else if (!saved.stage) {
     next = newStage(saved, pickStage(saved.served));
   }
-  return {
+  // A shared link is always an endless stage, so show it (or the confirm).
+  if (words) next = { ...next, mode: "endless" };
+  const state: GameState = {
     saved: next,
     input: "",
     message:
       shared && "invalid" in shared ? "That stage link isn't valid" : null,
     rejections: 0,
   };
+  // Reopening on a later day moves daily play on to that day's stage.
+  if (next.mode === "daily") {
+    const today = dayNumber();
+    if (next.daily.stage?.number !== today) {
+      const words = dailyWords(today);
+      return {
+        ...gameReducer(state, { type: "startDaily", day: today, words }),
+        message: state.message,
+      };
+    }
+  }
+  return state;
 }
 
 type Panel = "help" | "stats" | null;
@@ -71,10 +92,21 @@ function App() {
       : null,
   );
   const { saved, input, message, rejections } = state;
-  const stage = saved.stage!;
+  const daily = saved.mode === "daily";
+  // Read inline rather than via activeStage(): the React Compiler only treats
+  // direct reads of reducer state as frozen, which the callbacks below rely on.
+  const stage = (daily ? saved.daily.stage : saved.stage)!;
   const answer = stage.words[stage.cursor];
   const wordDone = isWordDone(stage);
   const stageDone = isStageDone(stage);
+
+  const stageLabel = daily ? `Daily #${stage.number}` : `Stage ${stage.number}`;
+  const streakTiles: [string, number][] = daily
+    ? [
+        ["Current streak", currentStreak(saved.daily, dayNumber())],
+        ["Best streak", saved.daily.maxStreak],
+      ]
+    : [];
 
   useEffect(() => saveState(saved), [saved]);
   useEffect(clearSharedLink, []);
@@ -85,14 +117,25 @@ function App() {
     setPendingShare(null);
   }
 
+  function switchMode(mode: Mode) {
+    if (mode === "daily") {
+      const day = dayNumber();
+      dispatch({ type: "startDaily", day, words: dailyWords(day) });
+    } else {
+      dispatch({ type: "setMode", mode });
+    }
+  }
+
   const advance = useCallback(() => {
     if (!wordDone) return;
-    if (stageDone) {
-      dispatch({ type: "newStage", ...pickStage(saved.served) });
-    } else {
+    if (!stageDone) {
       dispatch({ type: "nextWord" });
+    } else if (daily) {
+      dispatch({ type: "setMode", mode: "endless" });
+    } else {
+      dispatch({ type: "newStage", ...pickStage(saved.served) });
     }
-  }, [wordDone, stageDone, saved.served]);
+  }, [wordDone, stageDone, daily, saved.served]);
 
   const submit = useCallback(() => {
     if (wordDone) advance();
@@ -148,9 +191,24 @@ function App() {
       </header>
 
       <main>
+        <div className="mode-switch" role="group" aria-label="Game mode">
+          {(["endless", "daily"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={saved.mode === mode}
+              // Like the on-screen keys: a clicked mode button mustn't keep
+              // focus, or Enter would press it again instead of submitting.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => switchMode(mode)}
+            >
+              {mode === "daily" ? "Daily" : "Endless"}
+            </button>
+          ))}
+        </div>
         <div className="stage-heading">
           <p>
-            Stage {stage.number} · Word {stage.cursor + 1} of {STAGE_LENGTH}
+            {stageLabel} · Word {stage.cursor + 1} of {STAGE_LENGTH}
             {multiplier > 1 && (
               <span className="boss-badge">Boss ×{multiplier}</span>
             )}
@@ -165,8 +223,8 @@ function App() {
 
         {stageDone && wordDone ? (
           <StageSummary
-            number={stage.number}
-            words={stage.words}
+            title={`${stageLabel} complete`}
+            shareWords={daily ? undefined : stage.words}
             results={stage.results}
           />
         ) : (
@@ -192,7 +250,11 @@ function App() {
               result={result}
               onNext={advance}
               nextLabel={
-                stageDone ? `Start stage ${stage.number + 1}` : "Next word"
+                !stageDone
+                  ? "Next word"
+                  : daily
+                    ? "Back to endless"
+                    : `Start stage ${stage.number + 1}`
               }
             />
           ) : message ? null : worth > 0 ? (
@@ -243,10 +305,13 @@ function App() {
       </Modal>
       <Modal
         open={panel === "stats"}
-        title="Statistics"
+        title={daily ? "Daily statistics" : "Endless statistics"}
         onClose={() => setPanel(null)}
       >
-        <StatsPanel stats={saved.stats} />
+        <StatsPanel
+          stats={daily ? saved.daily.stats : saved.stats}
+          extraTiles={streakTiles}
+        />
       </Modal>
       <Modal
         open={pendingShare !== null}
@@ -254,8 +319,9 @@ function App() {
         onClose={() => setPendingShare(null)}
       >
         <p>
-          You're partway through stage {stage.number}. Playing the shared stage
-          abandons it, though words you've already finished stay in your stats.
+          You're partway through stage {saved.stage!.number}. Playing the shared
+          stage abandons it, though words you've already finished stay in your
+          stats.
         </p>
         <div className="modal-actions">
           <button
