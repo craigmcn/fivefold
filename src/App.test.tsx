@@ -15,6 +15,7 @@ describe("App", () => {
     window.localStorage.clear();
     saveState(seededState());
   });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("has no detectable accessibility violations", async () => {
     const { container } = render(<App />);
@@ -125,6 +126,63 @@ describe("App", () => {
       screen.getByRole("heading", { name: "Endless statistics" }),
     ).toBeVisible();
     expect(screen.getByText("Words played")).toBeVisible();
+  });
+
+  it("shares endless results with the stage link via Web Share", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...navigator, share });
+    saveState(
+      seededState({
+        stage: {
+          number: 4,
+          words: STAGE_WORDS,
+          cursor: 9,
+          guesses: ["dross"],
+          results: STAGE_WORDS.map((answer) => ({
+            answer,
+            guesses: 2,
+            points: 50,
+            gaveUp: false,
+          })),
+        },
+      }),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Share results" }));
+
+    const { text } = share.mock.calls[0][0] as { text: string };
+    expect(text.split("\n")[0]).toBe("Fivefold Stage 4 · 600 pts");
+    expect(text).toContain(`?stage=${encodeStage(STAGE_WORDS)}`);
+  });
+
+  it("stays quiet when the share sheet is dismissed", async () => {
+    const share = vi
+      .fn()
+      .mockRejectedValue(new DOMException("cancelled", "AbortError"));
+    vi.stubGlobal("navigator", { ...navigator, share });
+    saveState(
+      seededState({
+        stage: {
+          number: 1,
+          words: STAGE_WORDS,
+          cursor: 9,
+          guesses: ["dross"],
+          results: STAGE_WORDS.map((answer) => ({
+            answer,
+            guesses: 1,
+            points: 60,
+            gaveUp: false,
+          })),
+        },
+      }),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Share results" }));
+
+    expect(share).toHaveBeenCalled();
+    expect(screen.queryByText(/copied|Couldn't share/)).not.toBeInTheDocument();
   });
 
   it("offers a link to the finished stage", async () => {
@@ -328,6 +386,24 @@ describe("App in daily mode", () => {
       screen.getByRole("button", { name: "Back to endless" }),
     ).toBeVisible();
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("copies spoiler-free daily results where Web Share is missing", async () => {
+    saveState(
+      seededState({
+        mode: "daily",
+        daily: { ...emptyDaily(), stage: finished(3, dailyWords(3)) },
+      }),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Share results" }));
+
+    expect(screen.getByText("Results copied to the clipboard.")).toBeVisible();
+    const text = await navigator.clipboard.readText();
+    expect(text.split("\n")[0]).toBe("Fivefold Daily #3 · 700 pts");
+    expect(text).not.toContain("?stage=");
+    for (const word of dailyWords(3)) expect(text).not.toContain(word);
   });
 
   it("moves on to the new day's stage when reopened tomorrow", () => {

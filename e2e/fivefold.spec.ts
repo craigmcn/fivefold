@@ -61,6 +61,20 @@ test("a finished stage's link gives a friend the same words", async ({
     .getByRole("textbox", { name: /Challenge a friend/ })
     .inputValue();
 
+  // Headless Chromium's Web Share support varies by OS; force the clipboard
+  // path so the result is the same locally and in CI.
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.evaluate("delete Navigator.prototype.share");
+  await page.getByRole("button", { name: "Share results" }).click();
+  await expect(
+    page.getByText("Results copied to the clipboard."),
+  ).toBeVisible();
+  const shared = (await page.evaluate(
+    "navigator.clipboard.readText()",
+  )) as string;
+  expect(shared).toContain("Fivefold Stage 1 · 880 pts");
+  expect(shared).toContain(link);
+
   // A fresh context has empty storage, like a friend's browser; the friend is
   // midway through their own random stage, so the link asks first.
   const friend = await (await browser.newContext()).newPage();

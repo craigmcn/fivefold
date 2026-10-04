@@ -223,7 +223,7 @@ function App() {
 
         {stageDone && wordDone ? (
           <StageSummary
-            title={`${stageLabel} complete`}
+            label={stageLabel}
             shareWords={daily ? undefined : stage.words}
             results={stage.results}
           />
