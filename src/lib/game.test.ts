@@ -245,6 +245,24 @@ describe("hints", () => {
     expect(gameReducer(solved, { type: "eliminateLetters" })).toBe(solved);
   });
 
+  it("tags hint state with the word it belongs to", () => {
+    let state = typeWord(start(), "stand");
+    state = gameReducer(state, { type: "nextWord" });
+    expect(state.saved.stage!.hintsFor).toBe(1);
+  });
+
+  it("counts daily hints in daily stats only", () => {
+    let state = gameReducer(start(), {
+      type: "startDaily",
+      day: 7,
+      words: [...WORDS].reverse(),
+    });
+    state = gameReducer(state, { type: "revealLetter" });
+    state = typeWord(state, "dross");
+    expect(state.saved.daily.stats.hintsUsed).toBe(1);
+    expect(state.saved.stats.hintsUsed).toBe(0);
+  });
+
   it("voids the clean-stage bonus", () => {
     let state = gameReducer(start(), { type: "eliminateLetters" });
     WORDS.forEach((word, i) => {

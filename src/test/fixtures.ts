@@ -25,6 +25,7 @@ export function seededState(overrides: Partial<SavedState> = {}): SavedState {
       revealed: [],
       eliminated: [],
       eliminations: 0,
+      hintsFor: 0,
     },
     ...overrides,
   };

@@ -58,7 +58,8 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   reveal 2, rule out 1): a word scores `pointsFor(guesses + hintSteps)`, so
   hints are free once guesses stop scoring. Any hint voids the clean bonus.
   Per-word hint state (`revealed`, `eliminated`, `eliminations`) lives on
-  `StageProgress` and resets on `nextWord`; `WordResult.hints` and
+  `StageProgress` and resets on `nextWord`; `hintsFor` tags it with its
+  cursor so `loadStage` clears hints a pre-hints build carried forward; `WordResult.hints` and
   `Stats.hintsUsed` record usage. Hint buttons `preventDefault` on mousedown
   like the keys.
 - **Share text:** `src/lib/shareText.ts` builds a spoiler-free summary

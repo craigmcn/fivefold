@@ -29,6 +29,9 @@ export interface StageProgress {
   revealed: number[];
   eliminated: string[];
   eliminations: number;
+  // The cursor the hint fields belong to. A pre-hints build advancing the
+  // cursor leaves them stale; a mismatch on load clears them.
+  hintsFor: number;
 }
 
 export type Mode = "endless" | "daily";
@@ -99,6 +102,7 @@ function isStage(value: unknown): value is StageProgress {
     s.cursor! >= 0 &&
     s.cursor! < STAGE_LENGTH &&
     Array.isArray(s.results) &&
+    s.results.every((r) => r !== null && typeof r === "object") &&
     (s.results.length === s.cursor || s.results.length === s.cursor! + 1) &&
     isWordList(s.guesses)
   );
@@ -113,19 +117,23 @@ const isCount = (value: unknown): value is number =>
 function loadStage(value: unknown): StageProgress | null {
   if (!isStage(value)) return null;
   const s = value as Partial<StageProgress> & StageProgress;
+  const current = s.hintsFor === s.cursor;
   return {
     ...s,
     results: s.results.map((r) => ({
       ...r,
       hints: isCount(r.hints) ? r.hints : 0,
     })),
-    revealed: Array.isArray(s.revealed)
-      ? s.revealed.filter((i) => Number.isInteger(i) && i >= 0 && i < 5)
-      : [],
-    eliminated: Array.isArray(s.eliminated)
-      ? s.eliminated.filter((l) => /^[a-z]$/.test(String(l)))
-      : [],
-    eliminations: isCount(s.eliminations) ? s.eliminations : 0,
+    revealed:
+      current && Array.isArray(s.revealed)
+        ? s.revealed.filter((i) => Number.isInteger(i) && i >= 0 && i < 5)
+        : [],
+    eliminated:
+      current && Array.isArray(s.eliminated)
+        ? s.eliminated.filter((l) => /^[a-z]$/.test(String(l)))
+        : [],
+    eliminations: current && isCount(s.eliminations) ? s.eliminations : 0,
+    hintsFor: s.cursor,
   };
 }
 

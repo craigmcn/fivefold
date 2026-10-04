@@ -99,6 +99,7 @@ describe("App", () => {
           revealed: [],
           eliminated: [],
           eliminations: 0,
+          hintsFor: 0,
           guesses: [],
           results: STAGE_WORDS.slice(0, 9).map((answer) => ({
             answer,
@@ -192,6 +193,7 @@ describe("App", () => {
           revealed: [],
           eliminated: [],
           eliminations: 0,
+          hintsFor: 0,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
@@ -226,6 +228,7 @@ describe("App", () => {
           revealed: [],
           eliminated: [],
           eliminations: 0,
+          hintsFor: 0,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
@@ -255,6 +258,7 @@ describe("App", () => {
           revealed: [],
           eliminated: [],
           eliminations: 0,
+          hintsFor: 0,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
@@ -374,6 +378,7 @@ describe("App with a shared stage link", () => {
           revealed: [],
           eliminated: [],
           eliminations: 0,
+          hintsFor: 0,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
@@ -417,6 +422,7 @@ describe("App in daily mode", () => {
     revealed: [],
     eliminated: [],
     eliminations: 0,
+    hintsFor: 0,
     guesses: [words[9]],
     results: words.map((answer) => ({
       answer,

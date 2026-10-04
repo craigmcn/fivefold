@@ -80,6 +80,7 @@ const freshStage = (number: number, words: string[]): StageProgress => ({
   revealed: [],
   eliminated: [],
   eliminations: 0,
+  hintsFor: 0,
 });
 
 export const hintCount = (stage: StageProgress): number =>
@@ -242,6 +243,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           revealed: [],
           eliminated: [],
           eliminations: 0,
+          hintsFor: stage.cursor + 1,
         }),
       };
   }

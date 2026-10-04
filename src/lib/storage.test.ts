@@ -104,8 +104,38 @@ describe("storage", () => {
       stats: { ...emptyStats(), totalPoints: 120 },
       served: ["stand"],
       // Saves from before hints get the hint fields defaulted.
-      stage: { ...stage, revealed: [], eliminated: [], eliminations: 0 },
+      stage: {
+        ...stage,
+        revealed: [],
+        eliminated: [],
+        eliminations: 0,
+        hintsFor: 0,
+      },
     });
+  });
+
+  it("drops a stage with a malformed result but keeps stats", () => {
+    const state = emptyState();
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({
+        ...state,
+        stats: { ...state.stats, totalPoints: 90 },
+        stage: {
+          number: 1,
+          words:
+            "stand party crane flock shock early adorn guild taper dross".split(
+              " ",
+            ),
+          cursor: 1,
+          results: [null],
+          guesses: [],
+        },
+      }),
+    );
+    const loaded = loadState();
+    expect(loaded.stage).toBeNull();
+    expect(loaded.stats.totalPoints).toBe(90);
   });
 
   it("drops malformed hint fields without losing the stage", () => {
@@ -123,6 +153,7 @@ describe("storage", () => {
         revealed: [0, 9, "x"],
         eliminated: ["e", "EE", 3],
         eliminations: -1,
+        hintsFor: 0,
       },
     };
     window.localStorage.setItem("fivefold", JSON.stringify(stage));
@@ -130,6 +161,45 @@ describe("storage", () => {
       revealed: [0],
       eliminated: ["e"],
       eliminations: 0,
+    });
+  });
+
+  it("clears hints left over from an earlier word", () => {
+    // What a pre-hints build leaves behind: cursor moved on, hints didn't.
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({
+        ...emptyState(),
+        stage: {
+          number: 1,
+          words:
+            "stand party crane flock shock early adorn guild taper dross".split(
+              " ",
+            ),
+          cursor: 1,
+          results: [
+            {
+              answer: "stand",
+              guesses: 1,
+              points: 40,
+              gaveUp: false,
+              hints: 1,
+            },
+          ],
+          guesses: [],
+          revealed: [0],
+          eliminated: ["e", "o", "r"],
+          eliminations: 1,
+          hintsFor: 0,
+        },
+      }),
+    );
+    expect(loadState().stage).toMatchObject({
+      cursor: 1,
+      revealed: [],
+      eliminated: [],
+      eliminations: 0,
+      hintsFor: 1,
     });
   });
 
