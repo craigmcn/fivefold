@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import {
-  CLEAN_STAGE_BONUS,
+  cleanBonus,
   isCleanStage,
   stageScore,
   type WordResult,
@@ -15,6 +15,7 @@ interface StageSummaryProps {
   // only spoil a friend's daily.
   shareWords?: readonly string[];
   results: readonly WordResult[];
+  hard: boolean;
 }
 
 type CopyState = "idle" | "copied" | "failed";
@@ -101,16 +102,20 @@ export function StageSummary({
   label,
   shareWords,
   results,
+  hard,
 }: StageSummaryProps) {
   const clean = isCleanStage(results);
   return (
     <section className="stage-summary" aria-labelledby="stage-summary-title">
-      <h2 id="stage-summary-title">{label} complete</h2>
+      <h2 id="stage-summary-title">
+        {label} complete{hard && " (hard mode)"}
+      </h2>
       <ShareResults
         text={shareText(
           label,
           results,
           shareWords ? stageLink(shareWords) : appLink(),
+          hard,
         )}
       />
       {shareWords && <ShareLink words={shareWords} />}
@@ -141,14 +146,14 @@ export function StageSummary({
           {clean && (
             <tr>
               <td colSpan={3}>Clean stage bonus</td>
-              <td>{CLEAN_STAGE_BONUS}</td>
+              <td>{cleanBonus(hard)}</td>
             </tr>
           )}
           <tr>
             <th scope="row" colSpan={3}>
               Total
             </th>
-            <td>{stageScore(results)}</td>
+            <td>{stageScore(results, hard)}</td>
           </tr>
         </tfoot>
       </table>

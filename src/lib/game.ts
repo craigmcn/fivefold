@@ -1,8 +1,9 @@
 import { GUESSES } from "../data/guesses";
 import { newlyEarned } from "./achievements";
+import { hardModeViolation } from "./hardMode";
 import { nextEliminations, nextReveal } from "./hints";
 import {
-  CLEAN_STAGE_BONUS,
+  cleanBonus,
   HINT_STEPS,
   isCleanStage,
   pointsFor,
@@ -39,6 +40,7 @@ export type GameAction =
   | { type: "revealLetter" }
   | { type: "eliminateLetters" }
   | { type: "dismissUnlocked" }
+  | { type: "setHardMode"; on: boolean }
   | { type: "newStage"; words: string[]; served: string[] }
   | { type: "setMode"; mode: Mode }
   | { type: "startDaily"; day: number; words: string[] };
@@ -62,7 +64,7 @@ export function newStage(
   return {
     ...saved,
     served,
-    stage: freshStage(number, words),
+    stage: freshStage(number, words, saved.hardMode),
   };
 }
 
@@ -75,7 +77,11 @@ function withActiveStage(saved: SavedState, stage: StageProgress): SavedState {
     : { ...saved, stage };
 }
 
-const freshStage = (number: number, words: string[]): StageProgress => ({
+const freshStage = (
+  number: number,
+  words: string[],
+  hard: boolean,
+): StageProgress => ({
   number,
   words,
   cursor: 0,
@@ -85,6 +91,7 @@ const freshStage = (number: number, words: string[]): StageProgress => ({
   eliminated: [],
   eliminations: 0,
   hintsFor: 0,
+  hard,
 });
 
 export const hintCount = (stage: StageProgress): number =>
@@ -105,7 +112,11 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
     guesses: stage.guesses.length,
     points: gaveUp
       ? 0
-      : pointsFor(stage.guesses.length + hintSteps(stage), stage.cursor),
+      : pointsFor(
+          stage.guesses.length + hintSteps(stage),
+          stage.cursor,
+          stage.hard,
+        ),
     gaveUp,
     hints: hintCount(stage),
   };
@@ -120,8 +131,8 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
   const stageDone = results.length === STAGE_LENGTH;
   if (stageDone) {
     const clean = isCleanStage(results);
-    const bonus = clean ? CLEAN_STAGE_BONUS : 0;
-    stats = recordStage(stats, stageScore(results), clean, bonus);
+    const bonus = clean ? cleanBonus(stage.hard) : 0;
+    stats = recordStage(stats, stageScore(results, stage.hard), clean, bonus);
   }
   let saved: SavedState = {
     ...state.saved,
@@ -169,6 +180,29 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...cleared,
         saved: { ...newStage(state.saved, action), mode: "endless" },
       };
+    case "setHardMode": {
+      // Untouched stages switch now; anything in progress keeps its setting
+      // until it ends, so hard mode can't be dodged for one tricky word.
+      const untouched = (s: StageProgress | null) =>
+        s !== null &&
+        s.results.length === 0 &&
+        s.guesses.length === 0 &&
+        hintCount(s) === 0;
+      const relock = (s: StageProgress | null) =>
+        untouched(s) ? { ...s!, hard: action.on } : s;
+      return {
+        ...state,
+        saved: {
+          ...state.saved,
+          hardMode: action.on,
+          stage: relock(state.saved.stage),
+          daily: {
+            ...state.saved.daily,
+            stage: relock(state.saved.daily.stage),
+          },
+        },
+      };
+    }
     case "dismissUnlocked":
       return state.unlocked.length === 0 ? state : { ...state, unlocked: [] };
     case "setMode":
@@ -186,7 +220,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           mode: "daily",
           daily: {
             ...state.saved.daily,
-            stage: freshStage(action.day, action.words),
+            stage: freshStage(action.day, action.words, state.saved.hardMode),
           },
         },
       };
@@ -210,6 +244,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (done) return state;
       if (state.input.length < 5) return reject(state, "Not enough letters");
       if (!GUESSES.has(state.input)) return reject(state, "Not in word list");
+      if (stage.hard) {
+        const broken = hardModeViolation(
+          state.input,
+          stage.guesses,
+          stage.words[stage.cursor],
+          stage.revealed,
+        );
+        if (broken) return reject(state, broken);
+      }
       const guesses = [...stage.guesses, state.input];
       const next = { ...stage, guesses };
       if (state.input === stage.words[stage.cursor]) {

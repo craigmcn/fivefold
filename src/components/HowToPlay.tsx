@@ -2,6 +2,7 @@ import { ELIMINATE_COUNT } from "../lib/hints";
 import {
   BOSS_MULTIPLIERS,
   CLEAN_STAGE_BONUS,
+  HARD_MULTIPLIER,
   HINT_STEPS,
   POINTS_BY_GUESS,
   SCORED_GUESSES,
@@ -48,6 +49,12 @@ export function HowToPlay() {
         Boss words are harder and worth more: {bosses}. Solve every word in a
         stage within {SCORED_GUESSES} guesses, without hints, for a{" "}
         {CLEAN_STAGE_BONUS}-point bonus.
+      </p>
+      <p>
+        Hard mode: every clue you&apos;ve found must be used in later guesses
+        (green letters stay put, yellow letters and revealed hints must appear),
+        for {HARD_MULTIPLIER}× points. It applies from your next stage, or
+        straight away if you haven&apos;t started this one.
       </p>
       <p>
         Achievements for milestones and great solves are listed under Stats.

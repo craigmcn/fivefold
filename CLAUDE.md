@@ -51,6 +51,16 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   replaces an untouched or finished stage silently and asks before
   abandoning one in progress. A replacement keeps the stage number, and its
   words count toward `served` like any other.
+- **Hard mode:** `SavedState.hardMode` is the preference; each stage locks
+  `StageProgress.hard` when it starts (`freshStage`), and `setHardMode`
+  also re-locks any stage that's still untouched (no guesses, results or
+  hints), so it can't be switched off for one tricky word.
+  `src/lib/hardMode.ts` `hardModeViolation` enforces Wordle's rules plus
+  hint-revealed letters (fixed positions, then minimum letter counts from
+  any one earlier guess); greys aren't enforced. A violation rejects the
+  guess like "Not in word list". Scoring: `pointsFor`, `stageScore` and
+  `cleanBonus` take a required `hard` flag (×1.5, rounded), so every
+  caller has to pass it.
 - **Hints:** `src/lib/hints.ts` (pure, deterministic). Reveal a letter =
   leftmost position not known from guesses or earlier reveals, never the
   last unknown one. Rule out = up to 3 absent, unguessed letters in
@@ -163,4 +173,4 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 ## Open TODOs
 
 Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-hard mode, definitions.
+definitions.

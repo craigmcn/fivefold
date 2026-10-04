@@ -35,6 +35,8 @@ export interface StageProgress {
   revealed: number[];
   eliminated: string[];
   eliminations: number;
+  // Locked when the stage starts, from SavedState.hardMode.
+  hard: boolean;
   // The cursor the hint fields belong to. A pre-hints build advancing the
   // cursor leaves them stale; a mismatch on load clears them.
   hintsFor: number;
@@ -63,6 +65,8 @@ export interface SavedState {
   daily: DailyState;
   // Earned achievement ids in the order earned; one set across both modes.
   achievements: string[];
+  // Hard-mode preference, applied to stages as they start.
+  hardMode: boolean;
 }
 
 export const emptyStats = (): Stats => ({
@@ -96,6 +100,7 @@ export const emptyState = (): SavedState => ({
   stage: null,
   daily: emptyDaily(),
   achievements: [],
+  hardMode: false,
 });
 
 const isWordList = (value: unknown): value is string[] =>
@@ -147,6 +152,7 @@ function loadStage(value: unknown): StageProgress | null {
         : [],
     eliminations: current && isCount(s.eliminations) ? s.eliminations : 0,
     hintsFor: s.cursor,
+    hard: s.hard === true,
   };
 }
 
@@ -197,6 +203,7 @@ export function loadState(): SavedState {
             ),
           ]
         : [],
+      hardMode: parsed.hardMode === true,
     };
   } catch {
     return emptyState();
