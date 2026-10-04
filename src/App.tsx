@@ -9,15 +9,18 @@ import { StageTrack } from "./components/StageTrack";
 import { StatsPanel } from "./components/StatsPanel";
 import { WordComplete } from "./components/WordComplete";
 import { keyboardStatuses } from "./lib/evaluate";
+import { nextEliminations, nextReveal, withHints } from "./lib/hints";
 import { dailyWords, dayNumber } from "./lib/daily";
 import {
   gameReducer,
+  hintSteps,
   isStageDone,
   isWordDone,
   newStage,
   type GameState,
 } from "./lib/game";
 import {
+  HINT_STEPS,
   multiplierFor,
   pointsFor,
   STAGE_LENGTH,
@@ -166,7 +169,20 @@ function App() {
 
   const guessNumber = stage.guesses.length + 1;
   const multiplier = multiplierFor(stage.cursor);
-  const worth = pointsFor(guessNumber, stage.cursor);
+  const steps = hintSteps(stage);
+  const worth = pointsFor(guessNumber + steps, stage.cursor);
+  const revealAt = wordDone
+    ? null
+    : nextReveal(answer, stage.guesses, stage.revealed);
+  const toEliminate = wordDone
+    ? []
+    : nextEliminations(answer, stage.guesses, stage.eliminated);
+  // What a hint would take off this guess's points, shown on its button.
+  const hintCost = (extraSteps: number) => {
+    const cost =
+      worth - pointsFor(guessNumber + steps + extraSteps, stage.cursor);
+    return cost > 0 ? `−${cost} pts` : "free";
+  };
   const lastGuess = stage.guesses.at(-1);
   const result = wordDone ? stage.results[stage.cursor] : undefined;
 
@@ -234,6 +250,7 @@ function App() {
             input={input}
             done={wordDone}
             rejections={rejections}
+            revealed={stage.revealed}
           />
         )}
 
@@ -275,6 +292,35 @@ function App() {
           )}
         </div>
 
+        {(revealAt !== null || toEliminate.length > 0) && (
+          <div className="hint-bar" role="group" aria-label="Hints">
+            {revealAt !== null && (
+              <button
+                type="button"
+                className="text-button"
+                // Like the on-screen keys: don't keep focus, or Enter would
+                // buy another hint instead of submitting the guess.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => dispatch({ type: "revealLetter" })}
+              >
+                Reveal a letter ({hintCost(HINT_STEPS.reveal)})
+              </button>
+            )}
+            {toEliminate.length > 0 && (
+              <button
+                type="button"
+                className="text-button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => dispatch({ type: "eliminateLetters" })}
+              >
+                Rule out {toEliminate.length}{" "}
+                {toEliminate.length === 1 ? "letter" : "letters"} (
+                {hintCost(HINT_STEPS.eliminate)})
+              </button>
+            )}
+          </div>
+        )}
+
         <p className="visually-hidden" aria-live="polite">
           {message ??
             (result
@@ -288,7 +334,12 @@ function App() {
 
         {!(stageDone && wordDone) && (
           <Keyboard
-            statuses={keyboardStatuses(stage.guesses, answer)}
+            statuses={withHints(
+              keyboardStatuses(stage.guesses, answer),
+              answer,
+              stage.revealed,
+              stage.eliminated,
+            )}
             onLetter={(letter) => dispatch({ type: "letter", letter })}
             onEnter={submit}
             onBackspace={() => dispatch({ type: "backspace" })}

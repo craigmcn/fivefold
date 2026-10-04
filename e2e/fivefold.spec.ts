@@ -93,3 +93,16 @@ test("a finished stage's link gives a friend the same words", async ({
   await friend.keyboard.press("Enter");
   await expect(friend.getByText("STAND in one! +60 points")).toBeVisible();
 });
+
+test("hints reveal a letter and cost points", async ({ page }) => {
+  await seed(page);
+  await page.goto("/");
+  await expect(page.getByText("Guess 1 is worth 60 points")).toBeVisible();
+
+  await page.getByRole("button", { name: /Reveal a letter/ }).click();
+  await expect(page.locator(".tile--hint")).toHaveText("s");
+  // The clicked hint button mustn't hold focus, or Enter would buy another.
+  await page.keyboard.type("stand");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("STAND in one! +40 points")).toBeVisible();
+});

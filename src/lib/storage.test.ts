@@ -48,12 +48,14 @@ describe("storage", () => {
       guesses: 3,
       points: 40,
       gaveUp: false,
+      hints: 0,
     });
     stats = recordWord(stats, {
       answer: "dross",
       guesses: 9,
       points: 0,
       gaveUp: true,
+      hints: 0,
     });
     expect(stats).toMatchObject({
       wordsPlayed: 2,
@@ -101,7 +103,33 @@ describe("storage", () => {
       ...emptyState(),
       stats: { ...emptyStats(), totalPoints: 120 },
       served: ["stand"],
-      stage,
+      // Saves from before hints get the hint fields defaulted.
+      stage: { ...stage, revealed: [], eliminated: [], eliminations: 0 },
+    });
+  });
+
+  it("drops malformed hint fields without losing the stage", () => {
+    const stage = {
+      ...emptyState(),
+      stage: {
+        number: 1,
+        words:
+          "stand party crane flock shock early adorn guild taper dross".split(
+            " ",
+          ),
+        cursor: 0,
+        results: [],
+        guesses: [],
+        revealed: [0, 9, "x"],
+        eliminated: ["e", "EE", 3],
+        eliminations: -1,
+      },
+    };
+    window.localStorage.setItem("fivefold", JSON.stringify(stage));
+    expect(loadState().stage).toMatchObject({
+      revealed: [0],
+      eliminated: ["e"],
+      eliminations: 0,
     });
   });
 

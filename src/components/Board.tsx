@@ -9,6 +9,8 @@ interface BoardProps {
   input: string;
   done: boolean;
   rejections: number;
+  // Positions given away by the reveal-a-letter hint.
+  revealed: readonly number[];
 }
 
 const STATUS_LABEL: Record<LetterStatus, string> = {
@@ -26,20 +28,33 @@ export function describeGuess(guess: string, answer: string): string {
 function Tiles({
   letters,
   statuses,
+  hints = [],
 }: {
   letters: string;
   statuses?: LetterStatus[];
+  // Faint placeholders for revealed letters, until the player types over them.
+  hints?: readonly (string | undefined)[];
 }) {
-  return Array.from({ length: 5 }, (_, i) => (
-    <span
-      key={i}
-      className={`tile${statuses ? ` tile--${statuses[i]}` : letters[i] ? " tile--filled" : ""}`}
-      style={{ "--i": i } as CSSProperties}
-      aria-hidden="true"
-    >
-      {letters[i] ?? ""}
-    </span>
-  ));
+  return Array.from({ length: 5 }, (_, i) => {
+    const hint = !letters[i] && hints[i];
+    const kind = statuses
+      ? ` tile--${statuses[i]}`
+      : letters[i]
+        ? " tile--filled"
+        : hint
+          ? " tile--hint"
+          : "";
+    return (
+      <span
+        key={i}
+        className={`tile${kind}`}
+        style={{ "--i": i } as CSSProperties}
+        aria-hidden="true"
+      >
+        {letters[i] ?? (hint || "")}
+      </span>
+    );
+  });
 }
 
 export function Board({
@@ -48,6 +63,7 @@ export function Board({
   input,
   done,
   rejections,
+  revealed,
 }: BoardProps) {
   const activeRow = useRef<HTMLDivElement>(null);
   // Guesses beyond the sixth grow the board downward, so keep the row being
@@ -57,6 +73,13 @@ export function Board({
   }, [guesses.length, done]);
 
   const rowsShown = guesses.length + (done ? 0 : 1);
+  const hints = Array.from({ length: 5 }, (_, i) =>
+    revealed.includes(i) ? answer[i] : undefined,
+  );
+  const hintLabel = [...revealed]
+    .sort((a, b) => a - b)
+    .map((i) => `letter ${i + 1} is ${answer[i].toUpperCase()}`)
+    .join(", ");
   const fillers = Math.max(0, SCORED_GUESSES - rowsShown);
 
   return (
@@ -78,9 +101,9 @@ export function Board({
           ref={activeRow}
           className={`row${rejections > 0 ? " row--shake" : ""}`}
           role="img"
-          aria-label={`Guess ${guesses.length + 1}: ${input ? input.toUpperCase().split("").join(" ") : "empty"}`}
+          aria-label={`Guess ${guesses.length + 1}: ${input ? input.toUpperCase().split("").join(" ") : "empty"}${hintLabel ? `; hints: ${hintLabel}` : ""}`}
         >
-          <Tiles letters={input} />
+          <Tiles letters={input} hints={hints} />
         </div>
       )}
       {Array.from({ length: fillers }, (_, i) => (

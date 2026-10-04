@@ -96,12 +96,16 @@ describe("App", () => {
           number: 1,
           words: STAGE_WORDS,
           cursor: 9,
+          revealed: [],
+          eliminated: [],
+          eliminations: 0,
           guesses: [],
           results: STAGE_WORDS.slice(0, 9).map((answer) => ({
             answer,
             guesses: 7,
             points: 0,
             gaveUp: false,
+            hints: 0,
           })),
         },
       }),
@@ -116,6 +120,54 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "Start stage 2" }));
     expect(screen.getByText(/Stage 2 · Word 1 of 10/)).toBeVisible();
     expect(stored().stats.stagesCompleted).toBe(1);
+  });
+
+  it("reveals a letter on the board and lowers the guess's worth", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(
+      screen.getByRole("button", { name: "Reveal a letter (−20 pts)" }),
+    );
+
+    expect(
+      screen.getByText("Letter 1 is S", { selector: ".message" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("img", { name: /Guess 1: empty; hints: letter 1 is S/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "s, correct" })).toBeVisible();
+
+    await user.keyboard("c");
+    expect(screen.getByText("Guess 1 is worth 40 points")).toBeVisible();
+    await user.keyboard("{Backspace}stand{Enter}");
+    expect(screen.getByText("STAND in one! +40 points")).toBeVisible();
+    expect(
+      screen.queryByRole("group", { name: "Hints" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("rules out letters on the keyboard", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(
+      screen.getByRole("button", { name: "Rule out 3 letters (−10 pts)" }),
+    );
+    const ruledOut = stored().stage.eliminated as string[];
+    expect(ruledOut).toHaveLength(3);
+    for (const letter of ruledOut) {
+      expect(
+        screen.getByRole("button", { name: `${letter}, not in the word` }),
+      ).toBeVisible();
+    }
+  });
+
+  it("shows hints as free once guesses stop scoring", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    for (let i = 0; i < 6; i++) await user.keyboard("crump{Enter}");
+    expect(
+      screen.getByRole("button", { name: "Reveal a letter (free)" }),
+    ).toBeVisible();
   });
 
   it("opens the stats dialog", async () => {
@@ -137,12 +189,16 @@ describe("App", () => {
           number: 4,
           words: STAGE_WORDS,
           cursor: 9,
+          revealed: [],
+          eliminated: [],
+          eliminations: 0,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
             guesses: 2,
             points: 50,
             gaveUp: false,
+            hints: 0,
           })),
         },
       }),
@@ -167,12 +223,16 @@ describe("App", () => {
           number: 1,
           words: STAGE_WORDS,
           cursor: 9,
+          revealed: [],
+          eliminated: [],
+          eliminations: 0,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
             guesses: 1,
             points: 60,
             gaveUp: false,
+            hints: 0,
           })),
         },
       }),
@@ -192,12 +252,16 @@ describe("App", () => {
           number: 1,
           words: STAGE_WORDS,
           cursor: 9,
+          revealed: [],
+          eliminated: [],
+          eliminations: 0,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
             guesses: 1,
             points: 60,
             gaveUp: false,
+            hints: 0,
           })),
         },
       }),
@@ -240,10 +304,17 @@ describe("App with a shared stage link", () => {
       guesses: 1,
       points: 60,
       gaveUp: false,
+      hints: 0,
     }));
     saveState(
       seededState({
-        stage: { number: 3, words: SHARED, cursor: 9, guesses: [], results },
+        stage: {
+          ...seededState().stage!,
+          number: 3,
+          words: SHARED,
+          cursor: 9,
+          results,
+        },
       }),
     );
     visit(encodeStage(SHARED));
@@ -300,12 +371,16 @@ describe("App with a shared stage link", () => {
           number: 1,
           words: STAGE_WORDS,
           cursor: 9,
+          revealed: [],
+          eliminated: [],
+          eliminations: 0,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
             guesses: 1,
             points: 60,
             gaveUp: false,
+            hints: 0,
           })),
         },
       }),
@@ -339,12 +414,16 @@ describe("App in daily mode", () => {
     number,
     words,
     cursor: 9,
+    revealed: [],
+    eliminated: [],
+    eliminations: 0,
     guesses: [words[9]],
     results: words.map((answer) => ({
       answer,
       guesses: 1,
       points: 60,
       gaveUp: false,
+      hints: 0,
     })),
   });
 

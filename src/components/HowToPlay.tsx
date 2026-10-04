@@ -1,6 +1,8 @@
+import { ELIMINATE_COUNT } from "../lib/hints";
 import {
   BOSS_MULTIPLIERS,
   CLEAN_STAGE_BONUS,
+  HINT_STEPS,
   POINTS_BY_GUESS,
   SCORED_GUESSES,
   STAGE_LENGTH,
@@ -37,9 +39,15 @@ export function HowToPlay() {
         points, or reveal the word and move on.
       </p>
       <p>
+        Stuck? Hints cost points as if you'd taken extra guesses, without using
+        a row: revealing a letter counts as {HINT_STEPS.reveal} guesses, ruling
+        out {ELIMINATE_COUNT} letters as {HINT_STEPS.eliminate}. Once guesses
+        stop scoring, hints are free.
+      </p>
+      <p>
         Boss words are harder and worth more: {bosses}. Solve every word in a
-        stage within {SCORED_GUESSES} guesses for a {CLEAN_STAGE_BONUS}-point
-        bonus.
+        stage within {SCORED_GUESSES} guesses, without hints, for a{" "}
+        {CLEAN_STAGE_BONUS}-point bonus.
       </p>
       <p>
         Daily mode gives everyone the same stage each day, with its own stats

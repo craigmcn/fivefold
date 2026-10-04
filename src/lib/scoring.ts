@@ -2,6 +2,9 @@ export const STAGE_LENGTH = 10;
 export const POINTS_BY_GUESS: readonly number[] = [60, 50, 40, 30, 20, 10];
 export const SCORED_GUESSES = POINTS_BY_GUESS.length;
 export const CLEAN_STAGE_BONUS = 100;
+// Hints score like extra guesses (without using a board row), so they slot
+// into the points table and are free once guesses stop scoring.
+export const HINT_STEPS = { reveal: 2, eliminate: 1 } as const;
 
 // The two "boss" words (5th and 10th) are worth more to reward the jump in
 // difficulty; indices are 0-based positions within the stage.
@@ -25,12 +28,16 @@ export interface WordResult {
   guesses: number;
   points: number;
   gaveUp: boolean;
+  hints: number;
 }
 
-// A stage is "clean" when every word was solved within the scored guesses.
+// A stage is "clean" when every word was solved within the scored guesses,
+// unaided.
 export const isCleanStage = (results: readonly WordResult[]): boolean =>
   results.length === STAGE_LENGTH &&
-  results.every((r) => !r.gaveUp && r.guesses <= SCORED_GUESSES);
+  results.every(
+    (r) => !r.gaveUp && r.guesses <= SCORED_GUESSES && r.hints === 0,
+  );
 
 export function stageScore(results: readonly WordResult[]): number {
   const base = results.reduce((sum, r) => sum + r.points, 0);

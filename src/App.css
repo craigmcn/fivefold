@@ -221,6 +221,12 @@ main {
   border-color: var(--border-strong);
 }
 
+.tile--hint {
+  border-style: dashed;
+  border-color: var(--accent);
+  color: var(--text-muted);
+}
+
 .tile--correct,
 .tile--present,
 .tile--absent {
@@ -383,6 +389,15 @@ main {
 
 .stage-summary tfoot {
   font-weight: 700;
+}
+
+.hint-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 1.25rem;
+  margin: -0.25rem 0 0.5rem;
+  font-size: 0.9rem;
 }
 
 .share-results {

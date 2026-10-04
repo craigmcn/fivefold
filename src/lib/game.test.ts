@@ -79,6 +79,7 @@ describe("gameReducer", () => {
       guesses: 2,
       points: 50,
       gaveUp: false,
+      hints: 0,
     });
     expect(state.saved.stats).toMatchObject({
       wordsPlayed: 1,
@@ -108,6 +109,7 @@ describe("gameReducer", () => {
     state = gameReducer(state, { type: "giveUp" });
     expect(state.saved.stage?.results[0]).toMatchObject({
       gaveUp: true,
+      hints: 0,
       points: 0,
     });
     expect(state.saved.stats.wordsGivenUp).toBe(1);
@@ -199,5 +201,59 @@ describe("daily mode", () => {
     let state = startDaily(start());
     state = gameReducer(state, { type: "newStage", words: WORDS, served: [] });
     expect(state.saved.mode).toBe("endless");
+  });
+});
+
+describe("hints", () => {
+  it("reveals a letter, costing two guess-steps of points", () => {
+    let state = gameReducer(start(), { type: "revealLetter" });
+    expect(state.message).toBe("Letter 1 is S");
+    expect(state.saved.stage!.revealed).toEqual([0]);
+
+    state = typeWord(state, "stand");
+    // Solved on guess 1 + 2 steps scores like guess 3.
+    expect(state.saved.stage!.results[0]).toMatchObject({
+      points: 40,
+      hints: 1,
+    });
+    expect(state.saved.stats.hintsUsed).toBe(1);
+  });
+
+  it("rules out letters, costing one guess-step", () => {
+    let state = gameReducer(start(), { type: "eliminateLetters" });
+    expect(state.saved.stage!.eliminated).toHaveLength(3);
+    expect(state.saved.stage!.eliminations).toBe(1);
+    state = typeWord(state, "stand");
+    expect(state.saved.stage!.results[0].points).toBe(50);
+  });
+
+  it("clears hints for the next word", () => {
+    let state = gameReducer(start(), { type: "revealLetter" });
+    state = gameReducer(state, { type: "eliminateLetters" });
+    state = typeWord(state, "stand");
+    state = gameReducer(state, { type: "nextWord" });
+    expect(state.saved.stage).toMatchObject({
+      revealed: [],
+      eliminated: [],
+      eliminations: 0,
+    });
+  });
+
+  it("does nothing once the word is solved", () => {
+    const solved = typeWord(start(), "stand");
+    expect(gameReducer(solved, { type: "revealLetter" })).toBe(solved);
+    expect(gameReducer(solved, { type: "eliminateLetters" })).toBe(solved);
+  });
+
+  it("voids the clean-stage bonus", () => {
+    let state = gameReducer(start(), { type: "eliminateLetters" });
+    WORDS.forEach((word, i) => {
+      state = typeWord(state, word);
+      if (i < WORDS.length - 1)
+        state = gameReducer(state, { type: "nextWord" });
+    });
+    expect(state.saved.stats.cleanStages).toBe(0);
+    // One step off word 1 (60 → 50); no bonus.
+    expect(state.saved.stats.bestStageScore).toBe(8 * 60 - 10 + 120 + 180);
   });
 });

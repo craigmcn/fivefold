@@ -8,6 +8,7 @@ const solved = (answer: string, guesses: number, points: number) => ({
   guesses,
   points,
   gaveUp: false,
+  hints: 0,
 });
 
 describe("shareText", () => {
@@ -27,6 +28,14 @@ describe("shareText", () => {
     expect(lines[10]).toBe("⬛⬛⬛⬛⬛⬛🟧 0 ×3");
     expect(lines.at(-1)).toBe("https://x.test/");
     expect(lines).toHaveLength(12);
+  });
+
+  it("marks each hint with a bulb", () => {
+    const results = STAGE_WORDS.map((w) => solved(w, 1, 60));
+    results[2] = { ...solved(STAGE_WORDS[2], 2, 30), hints: 2 };
+    const lines = shareText("Daily #3", results, "https://x.test/").split("\n");
+    expect(lines[3]).toBe("⬛🟦 30 💡💡");
+    expect(lines.join("\n")).not.toContain("Clean stage");
   });
 
   it("adds the clean-stage bonus line when earned", () => {

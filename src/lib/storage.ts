@@ -10,6 +10,7 @@ export interface Stats {
   cleanStages: number;
   totalPoints: number;
   bestStageScore: number;
+  hintsUsed: number;
   // Solved-word counts keyed by number of guesses taken (1, 2, …, n).
   guessHistogram: Record<number, number>;
 }
@@ -23,6 +24,11 @@ export interface StageProgress {
   results: WordResult[];
   // Submitted guesses for the word currently being played.
   guesses: string[];
+  // Hints on the current word: revealed positions, removed letters, and how
+  // many times the remove-letters hint was used (one use can remove several).
+  revealed: number[];
+  eliminated: string[];
+  eliminations: number;
 }
 
 export type Mode = "endless" | "daily";
@@ -55,6 +61,7 @@ export const emptyStats = (): Stats => ({
   cleanStages: 0,
   totalPoints: 0,
   bestStageScore: 0,
+  hintsUsed: 0,
   guessHistogram: {},
 });
 
@@ -79,7 +86,8 @@ const isWordList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((w) => /^[a-z]{5}$/.test(String(w)));
 
 // Guards the fields App dereferences without checks; anything else is
-// display-only and can't crash rendering.
+// display-only and can't crash rendering. Hint fields are optional here and
+// defaulted by loadStage, so saves from before hints still load.
 function isStage(value: unknown): value is StageProgress {
   if (!value || typeof value !== "object") return false;
   const s = value as Partial<StageProgress>;
@@ -99,11 +107,33 @@ function isStage(value: unknown): value is StageProgress {
 const isCount = (value: unknown): value is number =>
   Number.isInteger(value) && (value as number) >= 0;
 
+// Hint fields were added without a version bump: they're additive, so older
+// app builds still read these saves, and defaulting them here covers saves
+// made before hints existed.
+function loadStage(value: unknown): StageProgress | null {
+  if (!isStage(value)) return null;
+  const s = value as Partial<StageProgress> & StageProgress;
+  return {
+    ...s,
+    results: s.results.map((r) => ({
+      ...r,
+      hints: isCount(r.hints) ? r.hints : 0,
+    })),
+    revealed: Array.isArray(s.revealed)
+      ? s.revealed.filter((i) => Number.isInteger(i) && i >= 0 && i < 5)
+      : [],
+    eliminated: Array.isArray(s.eliminated)
+      ? s.eliminated.filter((l) => /^[a-z]$/.test(String(l)))
+      : [],
+    eliminations: isCount(s.eliminations) ? s.eliminations : 0,
+  };
+}
+
 function loadDaily(value: unknown): DailyState {
   if (!value || typeof value !== "object") return emptyDaily();
   const d = value as Partial<DailyState>;
   return {
-    stage: isStage(d.stage) ? d.stage : null,
+    stage: loadStage(d.stage),
     stats: { ...emptyStats(), ...d.stats },
     streak: isCount(d.streak) ? d.streak : 0,
     maxStreak: isCount(d.maxStreak) ? d.maxStreak : 0,
@@ -129,7 +159,7 @@ export function loadState(): SavedState {
       mode: parsed.mode === "daily" ? "daily" : "endless",
       stats: { ...emptyStats(), ...parsed.stats },
       served: isWordList(parsed.served) ? parsed.served : [],
-      stage: isStage(parsed.stage) ? parsed.stage : null,
+      stage: loadStage(parsed.stage),
       daily: loadDaily(parsed.daily),
     };
   } catch {
@@ -154,6 +184,7 @@ export function recordWord(stats: Stats, result: WordResult): Stats {
     ...stats,
     wordsPlayed: stats.wordsPlayed + 1,
     wordsGivenUp: stats.wordsGivenUp + (result.gaveUp ? 1 : 0),
+    hintsUsed: stats.hintsUsed + result.hints,
     totalPoints: stats.totalPoints + result.points,
     guessHistogram: histogram,
   };

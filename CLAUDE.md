@@ -51,9 +51,19 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   replaces an untouched or finished stage silently and asks before
   abandoning one in progress. A replacement keeps the stage number, and its
   words count toward `served` like any other.
+- **Hints:** `src/lib/hints.ts` (pure, deterministic). Reveal a letter =
+  leftmost position not known from guesses or earlier reveals, never the
+  last unknown one. Rule out = up to 3 absent, unguessed letters in
+  answer-frequency order. Cost is in points-table steps (`HINT_STEPS`:
+  reveal 2, rule out 1): a word scores `pointsFor(guesses + hintSteps)`, so
+  hints are free once guesses stop scoring. Any hint voids the clean bonus.
+  Per-word hint state (`revealed`, `eliminated`, `eliminations`) lives on
+  `StageProgress` and resets on `nextWord`; `WordResult.hints` and
+  `Stats.hintsUsed` record usage. Hint buttons `preventDefault` on mousedown
+  like the keys.
 - **Share text:** `src/lib/shareText.ts` builds a spoiler-free summary
   (title, score, one row per word: ⬛ per missed guess then 🟦 scored /
-  🟧 unscored / ❌ revealed, points, boss ×N, clean bonus line) ending in
+  🟧 unscored / ❌ revealed, points, boss ×N, 💡 per hint, clean bonus line) ending in
   `stageLink` for endless or `appLink` for daily. Blue/orange stand in for
   teal/coral (no teal emoji). `StageSummary`'s Share results button uses
   `navigator.share` where present (AbortError = dismissed, silent), else the
@@ -83,7 +93,9 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   saves load as endless play with empty daily state. Unknown versions or
   corrupt data reset to empty, and a malformed saved stage or daily field is
   dropped (the rest kept) rather than crashing; bump `VERSION` and add a
-  migration if the shape changes.
+  migration if the shape changes incompatibly. Purely additive fields (the
+  hint fields) are defaulted in `loadStage` without a bump instead, so older
+  cached builds can still read new saves.
 - **Evaluation:** `src/lib/evaluate.ts`: two-pass Wordle scoring so
   duplicate letters are handled correctly; `keyboardStatuses` keeps each
   letter's best status for the on-screen keyboard.
@@ -135,4 +147,4 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 ## Open TODOs
 
 Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-hints, achievements, streaks, hard mode, definitions.
+achievements, streaks, hard mode, definitions.

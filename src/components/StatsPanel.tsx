@@ -73,6 +73,9 @@ export function StatsPanel({
       {stats.wordsGivenUp > 0 && (
         <p className="muted">Words revealed: {stats.wordsGivenUp}</p>
       )}
+      {stats.hintsUsed > 0 && (
+        <p className="muted">Hints used: {stats.hintsUsed}</p>
+      )}
     </>
   );
 }
