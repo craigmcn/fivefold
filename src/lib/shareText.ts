@@ -1,5 +1,5 @@
 import {
-  CLEAN_STAGE_BONUS,
+  cleanBonus,
   isCleanStage,
   multiplierFor,
   SCORED_GUESSES,
@@ -34,12 +34,15 @@ export function shareText(
   title: string,
   results: readonly WordResult[],
   url: string,
+  hard: boolean,
 ): string {
   const lines = [
-    `Fivefold ${title} · ${stageScore(results)} pts`,
+    `Fivefold ${title}${hard ? " (hard)" : ""} · ${stageScore(results, hard)} pts`,
     ...results.map(row),
   ];
-  if (isCleanStage(results)) lines.push(`✨ Clean stage +${CLEAN_STAGE_BONUS}`);
+  if (isCleanStage(results)) {
+    lines.push(`✨ Clean stage +${cleanBonus(hard)}`);
+  }
   lines.push(url);
   return lines.join("\n");
 }

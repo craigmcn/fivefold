@@ -16,12 +16,26 @@ export const BOSS_MULTIPLIERS: Readonly<Record<number, number>> = {
 export const multiplierFor = (wordIndex: number): number =>
   BOSS_MULTIPLIERS[wordIndex] ?? 1;
 
+// Hard mode is locked per stage when it starts, and scales every word's
+// points and the clean bonus.
+export const HARD_MULTIPLIER = 1.5;
+
+const hardScale = (points: number, hard: boolean) =>
+  Math.round(points * (hard ? HARD_MULTIPLIER : 1));
+
 // Points for solving on the given (1-based) guess; anything past the sixth
 // guess still clears the word but scores nothing.
-export function pointsFor(guessNumber: number, wordIndex: number): number {
+export function pointsFor(
+  guessNumber: number,
+  wordIndex: number,
+  hard: boolean,
+): number {
   const base = POINTS_BY_GUESS[guessNumber - 1] ?? 0;
-  return base * multiplierFor(wordIndex);
+  return hardScale(base * multiplierFor(wordIndex), hard);
 }
+
+export const cleanBonus = (hard: boolean): number =>
+  hardScale(CLEAN_STAGE_BONUS, hard);
 
 export interface WordResult {
   answer: string;
@@ -39,7 +53,10 @@ export const isCleanStage = (results: readonly WordResult[]): boolean =>
     (r) => !r.gaveUp && r.guesses <= SCORED_GUESSES && r.hints === 0,
   );
 
-export function stageScore(results: readonly WordResult[]): number {
+export function stageScore(
+  results: readonly WordResult[],
+  hard: boolean,
+): number {
   const base = results.reduce((sum, r) => sum + r.points, 0);
-  return base + (isCleanStage(results) ? CLEAN_STAGE_BONUS : 0);
+  return base + (isCleanStage(results) ? cleanBonus(hard) : 0);
 }

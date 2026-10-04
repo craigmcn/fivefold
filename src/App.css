@@ -138,6 +138,26 @@ main {
   color: var(--tile-present-text);
 }
 
+.hard-badge {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: var(--text);
+  color: var(--bg);
+}
+
+.hard-toggle {
+  margin-top: 0.4rem;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.hard-toggle input {
+  accent-color: var(--accent);
+  vertical-align: -0.1em;
+}
+
 .stage-track {
   display: flex;
   gap: 0.3rem;

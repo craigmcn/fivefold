@@ -106,3 +106,22 @@ test("hints reveal a letter and cost points", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByText("STAND in one! +40 points")).toBeVisible();
 });
+
+test("hard mode enforces earlier clues and pays ×1.5", async ({ page }) => {
+  await seed(page);
+  await page.goto("/");
+  await expect(page.getByText("Guess 1 is worth 60 points")).toBeVisible();
+
+  await page.getByRole("switch", { name: "Hard mode" }).check();
+  await expect(page.getByText("Guess 1 is worth 90 points")).toBeVisible();
+  await page.keyboard.type("slate");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("shank");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".message")).toHaveText("Guess must contain T");
+
+  for (let i = 0; i < 5; i++) await page.keyboard.press("Backspace");
+  await page.keyboard.type("stand");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("STAND in 2. +75 points")).toBeVisible();
+});

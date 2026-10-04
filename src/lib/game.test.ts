@@ -320,3 +320,43 @@ describe("achievements", () => {
     ]);
   });
 });
+
+describe("hard mode", () => {
+  const hardStart = () =>
+    gameReducer(start(), { type: "setHardMode", on: true });
+
+  it("applies at once to an untouched stage", () => {
+    const state = hardStart();
+    expect(state.saved.hardMode).toBe(true);
+    expect(state.saved.stage!.hard).toBe(true);
+  });
+
+  it("waits for the next stage once one is under way", () => {
+    let state = typeWord(start(), "crane");
+    state = gameReducer(state, { type: "setHardMode", on: true });
+    expect(state.saved.stage!.hard).toBe(false);
+    state = gameReducer(state, { type: "newStage", words: WORDS, served: [] });
+    expect(state.saved.stage!.hard).toBe(true);
+  });
+
+  it("rejects guesses that ignore earlier clues, without spending a guess", () => {
+    let state = typeWord(hardStart(), "slate");
+    state = typeWord(state, "shank");
+    expect(state.message).toBe("Guess must contain T");
+    expect(state.saved.stage!.guesses).toEqual(["slate"]);
+  });
+
+  it("scores ×1.5", () => {
+    const state = typeWord(hardStart(), "stand");
+    expect(state.saved.stage!.results[0].points).toBe(90);
+  });
+
+  it("locks today's daily to the setting when it starts", () => {
+    const state = gameReducer(hardStart(), {
+      type: "startDaily",
+      day: 7,
+      words: [...WORDS].reverse(),
+    });
+    expect(state.saved.daily.stage!.hard).toBe(true);
+  });
+});

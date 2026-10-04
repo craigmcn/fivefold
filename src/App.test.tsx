@@ -100,6 +100,7 @@ describe("App", () => {
           eliminated: [],
           eliminations: 0,
           hintsFor: 0,
+          hard: false,
           guesses: [],
           results: STAGE_WORDS.slice(0, 9).map((answer) => ({
             answer,
@@ -227,6 +228,31 @@ describe("App", () => {
     expect(await axe(dialog)).toHaveNoViolations();
   });
 
+  it("turns on hard mode at once for an untouched stage", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("switch", { name: "Hard mode" }));
+
+    expect(screen.getByText("Hard", { selector: ".hard-badge" })).toBeVisible();
+    expect(screen.getByText("Guess 1 is worth 90 points")).toBeVisible();
+    await user.keyboard("slate{Enter}shank{Enter}");
+    expect(
+      screen.getByText("Guess must contain T", { selector: ".message" }),
+    ).toBeVisible();
+    expect(stored()).toMatchObject({ hardMode: true, stage: { hard: true } });
+  });
+
+  it("defers hard mode until the next stage once play has started", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard("crane{Enter}");
+    await user.click(screen.getByRole("switch", { name: "Hard mode" }));
+
+    expect(screen.getByText(/from your next stage/)).toBeVisible();
+    expect(screen.queryByText("Hard", { selector: ".hard-badge" })).toBeNull();
+    expect(screen.getByText("Guess 2 is worth 50 points")).toBeVisible();
+  });
+
   it("opens the stats dialog", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -250,6 +276,7 @@ describe("App", () => {
           eliminated: [],
           eliminations: 0,
           hintsFor: 0,
+          hard: false,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
@@ -285,6 +312,7 @@ describe("App", () => {
           eliminated: [],
           eliminations: 0,
           hintsFor: 0,
+          hard: false,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
@@ -315,6 +343,7 @@ describe("App", () => {
           eliminated: [],
           eliminations: 0,
           hintsFor: 0,
+          hard: false,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
@@ -435,6 +464,7 @@ describe("App with a shared stage link", () => {
           eliminated: [],
           eliminations: 0,
           hintsFor: 0,
+          hard: false,
           guesses: ["dross"],
           results: STAGE_WORDS.map((answer) => ({
             answer,
@@ -479,6 +509,7 @@ describe("App in daily mode", () => {
     eliminated: [],
     eliminations: 0,
     hintsFor: 0,
+    hard: false,
     guesses: [words[9]],
     results: words.map((answer) => ({
       answer,

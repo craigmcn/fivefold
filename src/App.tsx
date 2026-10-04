@@ -178,7 +178,7 @@ function App() {
   const guessNumber = stage.guesses.length + 1;
   const multiplier = multiplierFor(stage.cursor);
   const steps = hintSteps(stage);
-  const worth = pointsFor(guessNumber + steps, stage.cursor);
+  const worth = pointsFor(guessNumber + steps, stage.cursor, stage.hard);
   const revealAt = wordDone
     ? null
     : nextReveal(answer, stage.guesses, stage.revealed);
@@ -188,7 +188,8 @@ function App() {
   // What a hint would take off this guess's points, shown on its button.
   const hintCost = (extraSteps: number) => {
     const cost =
-      worth - pointsFor(guessNumber + steps + extraSteps, stage.cursor);
+      worth -
+      pointsFor(guessNumber + steps + extraSteps, stage.cursor, stage.hard);
     return cost > 0 ? `−${cost} pts` : "free";
   };
   const lastGuess = stage.guesses.at(-1);
@@ -231,14 +232,31 @@ function App() {
             </button>
           ))}
         </div>
+        <div className="hard-toggle">
+          <label>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={saved.hardMode}
+              onChange={(e) =>
+                dispatch({ type: "setHardMode", on: e.target.checked })
+              }
+            />{" "}
+            Hard mode
+          </label>
+          {saved.hardMode !== stage.hard && (
+            <span className="muted"> · from your next stage</span>
+          )}
+        </div>
         <div className="stage-heading">
           <p>
             {stageLabel} · Word {stage.cursor + 1} of {STAGE_LENGTH}
             {multiplier > 1 && (
               <span className="boss-badge">Boss ×{multiplier}</span>
             )}
+            {stage.hard && <span className="hard-badge">Hard</span>}
           </p>
-          <p>{stageScore(stage.results)} pts</p>
+          <p>{stageScore(stage.results, stage.hard)} pts</p>
         </div>
         <StageTrack
           cursor={stage.cursor}
@@ -251,6 +269,7 @@ function App() {
             label={stageLabel}
             shareWords={daily ? undefined : stage.words}
             results={stage.results}
+            hard={stage.hard}
           />
         ) : (
           <Board

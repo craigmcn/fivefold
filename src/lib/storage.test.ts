@@ -111,6 +111,7 @@ describe("storage", () => {
         eliminated: [],
         eliminations: 0,
         hintsFor: 0,
+        hard: false,
       },
     });
   });
