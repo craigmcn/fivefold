@@ -19,7 +19,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc -b",
-    "words": "node scripts/build-words.ts && prettier --write src/data",
+    "words": "node scripts/build-words.ts && node scripts/build-definitions.ts && prettier --write src/data",
+    "definitions:fetch": "node scripts/fetch-wiktionary.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -50,7 +51,8 @@
     "vite": "^8",
     "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4",
-    "vitest-axe": "1.0.0-pre.5"
+    "vitest-axe": "1.0.0-pre.5",
+    "wordnet-db": "3.1.14"
   },
   "packageManager": "yarn@4.14.1"
 }

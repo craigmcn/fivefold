@@ -1,4 +1,5 @@
 import { SCORED_GUESSES, type WordResult } from "../lib/scoring";
+import { useDefinition } from "../lib/useDefinition";
 
 interface WordCompleteProps {
   result: WordResult;
@@ -17,9 +18,16 @@ function headline({ answer, guesses, points, gaveUp }: WordResult): string {
 }
 
 export function WordComplete({ result, onNext, nextLabel }: WordCompleteProps) {
+  const definition = useDefinition(result.answer);
   return (
     <div className="word-complete">
       <p>{headline(result)}</p>
+      {definition && (
+        <p className="definition">
+          <span className="visually-hidden">Definition: </span>
+          {definition}
+        </p>
+      )}
       {/* eslint-disable-next-line jsx-a11y/no-autofocus -- the only sensible next action; saves a click every word */}
       <button type="button" className="primary" onClick={onNext} autoFocus>
         {nextLabel}

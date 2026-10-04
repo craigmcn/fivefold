@@ -68,6 +68,15 @@ export function HowToPlay() {
         Finished endless stages also come with a link: send it to a friend and
         they play the same {STAGE_LENGTH} words.
       </p>
+      <p className="credits">
+        Definitions are shortened from{" "}
+        <a href="licenses/wordnet.txt">WordNet 3.1</a> (© Princeton University)
+        and <a href="https://en.wiktionary.org/">Wiktionary</a> (
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/">
+          CC BY-SA 4.0
+        </a>
+        ), with some written for Fivefold.
+      </p>
     </div>
   );
 }

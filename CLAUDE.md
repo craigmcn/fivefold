@@ -14,7 +14,8 @@ yarn test:coverage   # vitest run --coverage
 yarn test:e2e        # Playwright headless E2E
 yarn lint            # ESLint (src, e2e, scripts)
 yarn format:check    # Prettier check
-yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/data/
+yarn words           # regenerate src/data/{answers,guesses,definitions}.ts (offline)
+yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers change)
 ```
 
 ## Architecture
@@ -31,6 +32,22 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
     but remain valid guesses.
   - `blocklist.txt` blocks guesses and answers; `answer-exclude.txt` only
     keeps words out of the answer pool (crude words, and ones NYT retired).
+- **Definitions (generated):** `scripts/build-definitions.ts` writes
+  `src/data/definitions.ts` (one short definition per answer) as part of
+  `yarn words`. Priority: `scripts/data/definition-overrides.tsv`
+  (hand-written, ~250, fixing wrong, obscure or proper-noun senses), then
+  WordNet 3.1 (devDependency `wordnet-db`; POS with the most usage-tagged
+  senses, its first sense that isn't a proper noun or domain-labelled),
+  then `scripts/data/definitions-wiktionary.tsv` for WordNet's ~140 gaps
+  (inflections like "began", modern words). Only `yarn definitions:fetch`
+  touches the network. `src/data/definitions.test.ts` fails if an answer
+  lacks a definition or one carries source markup. WordNet's ordering of
+  untagged senses is arbitrary, so review new answers' definitions and add
+  overrides. Licences: WordNet's notice ships as `public/licenses/wordnet.txt`;
+  Wiktionary text is CC BY-SA 4.0; both are credited in How to Play.
+  `useDefinition` loads the module with a dynamic `import()`, so it's a
+  separate ~43 KB (brotli) chunk off the first load; the SW precaches it, so
+  definitions work offline. `WordComplete` shows it under the result.
 - **Stage shape:** `src/lib/stage.ts` `STAGE_TIERS` = easy, easy, medium,
   medium, **hard**, easy, medium, medium, medium, **brutal**. `pickStage` prefers unserved words; when a tier runs
   dry it clears only that tier's history (a new cycle) and returns the
@@ -172,5 +189,5 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 
 ## Open TODOs
 
-Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-definitions.
+Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20).
+The original roadmap (#2–#10) is complete.
