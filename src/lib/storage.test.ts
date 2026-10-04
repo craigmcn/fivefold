@@ -204,6 +204,18 @@ describe("storage", () => {
     });
   });
 
+  it("loads achievements, dropping junk and duplicates", () => {
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({
+        ...emptyState(),
+        achievements: ["first-try", 3, "first-try", null, "future-badge"],
+      }),
+    );
+    // Unknown ids survive, so a newer build's badges outlive an older one.
+    expect(loadState().achievements).toEqual(["first-try", "future-badge"]);
+  });
+
   it("resets malformed daily fields individually", () => {
     window.localStorage.setItem(
       "fivefold",

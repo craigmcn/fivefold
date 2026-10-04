@@ -50,6 +50,9 @@ export function HowToPlay() {
         {CLEAN_STAGE_BONUS}-point bonus.
       </p>
       <p>
+        Achievements for milestones and great solves are listed under Stats.
+      </p>
+      <p>
         Daily mode gives everyone the same stage each day, with its own stats
         and a streak for every day in a row you finish it.
       </p>
