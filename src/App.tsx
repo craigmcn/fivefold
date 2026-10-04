@@ -104,12 +104,12 @@ function App() {
   const stageDone = isStageDone(stage);
 
   const stageLabel = daily ? `Daily #${stage.number}` : `Stage ${stage.number}`;
-  const streakTiles: [string, number][] = daily
-    ? [
-        ["Current streak", currentStreak(saved.daily, dayNumber())],
-        ["Best streak", saved.daily.maxStreak],
-      ]
-    : [];
+  const dayStreak = daily
+    ? {
+        current: currentStreak(saved.daily, dayNumber()),
+        best: saved.daily.maxStreak,
+      }
+    : undefined;
 
   useEffect(() => saveState(saved), [saved]);
   useEffect(clearSharedLink, []);
@@ -361,7 +361,7 @@ function App() {
       >
         <StatsPanel
           stats={daily ? saved.daily.stats : saved.stats}
-          extraTiles={streakTiles}
+          dayStreak={dayStreak}
           unit={daily ? "daily" : "stage"}
         />
       </Modal>

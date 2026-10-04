@@ -130,6 +130,9 @@ describe("gameReducer", () => {
       cleanStages: 1,
       totalPoints: 8 * 60 + 120 + 180 + 100,
       bestStageScore: 8 * 60 + 120 + 180 + 100,
+      cleanStreak: 1,
+      wordStreak: 10,
+      maxWordStreak: 10,
     });
 
     state = gameReducer(state, { type: "newStage", words: WORDS, served: [] });

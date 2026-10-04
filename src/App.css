@@ -484,6 +484,35 @@ main {
   margin-bottom: 0.4rem;
 }
 
+.streaks {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.5rem;
+}
+
+.streaks th,
+.streaks td {
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.streaks th:first-child {
+  text-align: left;
+  font-weight: 400;
+}
+
+.streaks thead th {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.streaks td {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .stat-tiles {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

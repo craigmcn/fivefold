@@ -62,6 +62,12 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   cursor so `loadStage` clears hints a pre-hints build carried forward; `WordResult.hints` and
   `Stats.hintsUsed` record usage. Hint buttons `preventDefault` on mousedown
   like the keys.
+- **Streaks:** `Stats` (per mode) has `cleanStreak`/`maxCleanStreak`
+  (updated in `recordStage`) and `wordStreak`/`maxWordStreak` (words solved
+  within 6 guesses, hints allowed, a reveal or unscored solve breaks it;
+  updated in `recordWord`). Additive, defaulted by `loadStats`, no version
+  bump. Stats shows them in a Streaks table, with daily's consecutive-days
+  streak as its first row.
 - **Share text:** `src/lib/shareText.ts` builds a spoiler-free summary
   (title, score, one row per word: ⬛ per missed guess then 🟦 scored /
   🟧 unscored / ❌ revealed, points, boss ×N, 💡 per hint, clean bonus line) ending in
@@ -148,4 +154,4 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 ## Open TODOs
 
 Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-achievements, streaks, hard mode, definitions.
+achievements, hard mode, definitions.
