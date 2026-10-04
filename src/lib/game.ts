@@ -1,6 +1,8 @@
 import { GUESSES } from "../data/guesses";
+import { nextEliminations, nextReveal } from "./hints";
 import {
   CLEAN_STAGE_BONUS,
+  HINT_STEPS,
   isCleanStage,
   pointsFor,
   STAGE_LENGTH,
@@ -31,6 +33,8 @@ export type GameAction =
   | { type: "submit" }
   | { type: "giveUp" }
   | { type: "nextWord" }
+  | { type: "revealLetter" }
+  | { type: "eliminateLetters" }
   | { type: "newStage"; words: string[]; served: string[] }
   | { type: "setMode"; mode: Mode }
   | { type: "startDaily"; day: number; words: string[] };
@@ -73,7 +77,19 @@ const freshStage = (number: number, words: string[]): StageProgress => ({
   cursor: 0,
   results: [],
   guesses: [],
+  revealed: [],
+  eliminated: [],
+  eliminations: 0,
+  hintsFor: 0,
 });
+
+export const hintCount = (stage: StageProgress): number =>
+  stage.revealed.length + stage.eliminations;
+
+// Points-table steps the current word's hints have spent.
+export const hintSteps = (stage: StageProgress): number =>
+  stage.revealed.length * HINT_STEPS.reveal +
+  stage.eliminations * HINT_STEPS.eliminate;
 
 function reject(state: GameState, message: string): GameState {
   return { ...state, message, rejections: state.rejections + 1 };
@@ -83,8 +99,11 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
   const result: WordResult = {
     answer: stage.words[stage.cursor],
     guesses: stage.guesses.length,
-    points: gaveUp ? 0 : pointsFor(stage.guesses.length, stage.cursor),
+    points: gaveUp
+      ? 0
+      : pointsFor(stage.guesses.length + hintSteps(stage), stage.cursor),
     gaveUp,
+    hints: hintCount(stage),
   };
   const results = [...stage.results, result];
   const daily = state.saved.mode === "daily";
@@ -179,6 +198,37 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...cleared, saved: withActiveStage(state.saved, next) };
     }
 
+    case "revealLetter": {
+      if (done) return state;
+      const answer = stage.words[stage.cursor];
+      const index = nextReveal(answer, stage.guesses, stage.revealed);
+      if (index === null) return state;
+      return {
+        ...state,
+        message: `Letter ${index + 1} is ${answer[index].toUpperCase()}`,
+        saved: withActiveStage(state.saved, {
+          ...stage,
+          revealed: [...stage.revealed, index],
+        }),
+      };
+    }
+
+    case "eliminateLetters": {
+      if (done) return state;
+      const answer = stage.words[stage.cursor];
+      const letters = nextEliminations(answer, stage.guesses, stage.eliminated);
+      if (letters.length === 0) return state;
+      return {
+        ...state,
+        message: `Not in the word: ${letters.join(", ").toUpperCase()}`,
+        saved: withActiveStage(state.saved, {
+          ...stage,
+          eliminated: [...stage.eliminated, ...letters],
+          eliminations: stage.eliminations + 1,
+        }),
+      };
+    }
+
     case "giveUp":
       return done ? state : finishWord(state, stage, true);
 
@@ -190,6 +240,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...stage,
           cursor: stage.cursor + 1,
           guesses: [],
+          revealed: [],
+          eliminated: [],
+          eliminations: 0,
+          hintsFor: stage.cursor + 1,
         }),
       };
   }

@@ -128,7 +128,11 @@ export function StageSummary({
             <tr key={r.answer}>
               <td>{i + 1}</td>
               <td className="summary-word">{r.answer}</td>
-              <td>{r.gaveUp ? "revealed" : r.guesses}</td>
+              <td>
+                {r.gaveUp ? "revealed" : r.guesses}
+                {r.hints > 0 &&
+                  ` + ${r.hints} ${r.hints === 1 ? "hint" : "hints"}`}
+              </td>
               <td>{r.points}</td>
             </tr>
           ))}

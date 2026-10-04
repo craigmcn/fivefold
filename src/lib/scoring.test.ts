@@ -12,6 +12,7 @@ const result = (guesses: number, overrides: Partial<WordResult> = {}) => ({
   guesses,
   points: pointsFor(guesses, 0),
   gaveUp: false,
+  hints: 0,
   ...overrides,
 });
 
