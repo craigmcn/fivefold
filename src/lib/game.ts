@@ -152,7 +152,10 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
     ...state,
     input: "",
     message: null,
-    unlocked: [...state.unlocked, ...earned],
+    // Same array when nothing new was earned, so the toast's timer (keyed on
+    // the badge count) isn't restarted by every finished word.
+    unlocked:
+      earned.length > 0 ? [...state.unlocked, ...earned] : state.unlocked,
     saved,
   };
 }

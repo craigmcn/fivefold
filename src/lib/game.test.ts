@@ -296,6 +296,14 @@ describe("achievements", () => {
     expect(dismissed.saved.achievements).toEqual(["first-try"]);
   });
 
+  it("keeps the same unlocked list when a word earns nothing", () => {
+    let state = typeWord(start(), "stand");
+    state = gameReducer(state, { type: "nextWord" });
+    const before = state.unlocked;
+    state = typeWord(typeWord(state, "crane"), "party");
+    expect(state.unlocked).toBe(before);
+  });
+
   it("awards stage badges when a clean stage completes", () => {
     let state = start();
     WORDS.forEach((word, i) => {

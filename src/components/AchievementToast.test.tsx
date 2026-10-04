@@ -20,6 +20,29 @@ describe("AchievementToast", () => {
     expect(onDone).toHaveBeenCalledOnce();
   });
 
+  it("restarts only when more badges arrive, not on a re-render", () => {
+    const onDone = vi.fn();
+    const { rerender } = render(
+      <AchievementToast ids={["first-try"]} onDone={onDone} />,
+    );
+    vi.advanceTimersByTime(3000);
+    rerender(<AchievementToast ids={["first-try"]} onDone={onDone} />);
+    vi.advanceTimersByTime(1000);
+    expect(onDone).toHaveBeenCalledOnce();
+
+    onDone.mockClear();
+    rerender(<AchievementToast ids={[]} onDone={onDone} />);
+    rerender(<AchievementToast ids={["first-try"]} onDone={onDone} />);
+    vi.advanceTimersByTime(3000);
+    rerender(
+      <AchievementToast ids={["first-try", "clean-stage"]} onDone={onDone} />,
+    );
+    vi.advanceTimersByTime(3000);
+    expect(onDone).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1000);
+    expect(onDone).toHaveBeenCalledOnce();
+  });
+
   it("stays silent and sets no timer with nothing to show", () => {
     const onDone = vi.fn();
     render(<AchievementToast ids={[]} onDone={onDone} />);

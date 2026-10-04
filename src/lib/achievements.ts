@@ -95,8 +95,6 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   },
 ];
 
-export const ACHIEVEMENT_IDS = new Set(ACHIEVEMENTS.map((a) => a.id));
-
 export const achievementName = (id: string): string =>
   ACHIEVEMENTS.find((a) => a.id === id)?.name ?? id;
 

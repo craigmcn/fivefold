@@ -8,14 +8,15 @@ interface AchievementToastProps {
 
 const SHOW_MS = 4000;
 
-// Restarts its timer whenever more badges arrive, so a burst (e.g. a stage
-// that earns two at once) stays up long enough to read.
+// Keyed on the count, not array identity: the timer restarts only when more
+// badges arrive, so a stale toast can't linger across later words.
 export function AchievementToast({ ids, onDone }: AchievementToastProps) {
+  const count = ids.length;
   useEffect(() => {
-    if (ids.length === 0) return;
+    if (count === 0) return;
     const timer = window.setTimeout(onDone, SHOW_MS);
     return () => window.clearTimeout(timer);
-  }, [ids, onDone]);
+  }, [count, onDone]);
 
   return (
     <div className="toast-region" role="status">
