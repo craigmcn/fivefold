@@ -1398,7 +1398,6 @@ export const DEFINITIONS: Readonly<Record<string, string>> = {
   maker: "A person who makes things",
   mambo: "A Latin American dance similar in rhythm to the rumba",
   mamma: "Informal terms for a mother",
-  mammy: "An offensive term for a Black nursemaid in the southern U.S",
   manga:
     "Graphic novel that originated in Japan, usually intended for adults and characterized by highly stylized art",
   mange:
