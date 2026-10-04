@@ -24,7 +24,13 @@ const WORDS = [
 
 const start = (): GameState =>
   gameReducer(
-    { saved: emptyState(), input: "", message: null, rejections: 0 },
+    {
+      saved: emptyState(),
+      input: "",
+      message: null,
+      rejections: 0,
+      unlocked: [],
+    },
     { type: "newStage", words: WORDS, served: [] },
   );
 
@@ -276,5 +282,41 @@ describe("hints", () => {
     expect(state.saved.stats.cleanStages).toBe(0);
     // One step off word 1 (60 → 50); no bonus.
     expect(state.saved.stats.bestStageScore).toBe(8 * 60 - 10 + 120 + 180);
+  });
+});
+
+describe("achievements", () => {
+  it("records and queues a badge when it's earned", () => {
+    const state = typeWord(start(), "stand");
+    expect(state.saved.achievements).toEqual(["first-try"]);
+    expect(state.unlocked).toEqual(["first-try"]);
+
+    const dismissed = gameReducer(state, { type: "dismissUnlocked" });
+    expect(dismissed.unlocked).toEqual([]);
+    expect(dismissed.saved.achievements).toEqual(["first-try"]);
+  });
+
+  it("keeps the same unlocked list when a word earns nothing", () => {
+    let state = typeWord(start(), "stand");
+    state = gameReducer(state, { type: "nextWord" });
+    const before = state.unlocked;
+    state = typeWord(typeWord(state, "crane"), "party");
+    expect(state.unlocked).toBe(before);
+  });
+
+  it("awards stage badges when a clean stage completes", () => {
+    let state = start();
+    WORDS.forEach((word, i) => {
+      state = typeWord(state, word);
+      if (i < WORDS.length - 1)
+        state = gameReducer(state, { type: "nextWord" });
+    });
+    // Every word in one guess, so word 10 also earns Brutal efficiency.
+    expect(state.saved.achievements).toEqual([
+      "first-try",
+      "brutal-three",
+      "clean-stage",
+      "no-reveal-stage",
+    ]);
   });
 });

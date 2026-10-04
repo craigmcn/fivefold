@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import "./App.css";
+import { AchievementList } from "./components/AchievementList";
+import { AchievementToast } from "./components/AchievementToast";
 import { Board, describeGuess } from "./components/Board";
 import { HowToPlay } from "./components/HowToPlay";
 import { Keyboard } from "./components/Keyboard";
@@ -66,6 +68,7 @@ function init(shared: SharedLink): GameState {
     message:
       shared && "invalid" in shared ? "That stage link isn't valid" : null,
     rejections: 0,
+    unlocked: [],
   };
   // Reopening on a later day moves daily play on to that day's stage.
   if (next.mode === "daily") {
@@ -94,7 +97,7 @@ function App() {
       ? shared.words
       : null,
   );
-  const { saved, input, message, rejections } = state;
+  const { saved, input, message, rejections, unlocked } = state;
   const daily = saved.mode === "daily";
   // Read inline rather than via activeStage(): the React Compiler only treats
   // direct reads of reducer state as frozen, which the callbacks below rely on.
@@ -128,6 +131,11 @@ function App() {
       dispatch({ type: "setMode", mode });
     }
   }
+
+  const dismissUnlocked = useCallback(
+    () => dispatch({ type: "dismissUnlocked" }),
+    [],
+  );
 
   const advance = useCallback(() => {
     if (!wordDone) return;
@@ -188,6 +196,7 @@ function App() {
 
   return (
     <div id="fivefold">
+      <AchievementToast ids={unlocked} onDone={dismissUnlocked} />
       <header className="app-header">
         <button
           type="button"
@@ -364,6 +373,7 @@ function App() {
           dayStreak={dayStreak}
           unit={daily ? "daily" : "stage"}
         />
+        <AchievementList earned={saved.achievements} />
       </Modal>
       <Modal
         open={pendingShare !== null}

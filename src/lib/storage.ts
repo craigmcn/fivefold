@@ -61,6 +61,8 @@ export interface SavedState {
   served: string[];
   stage: StageProgress | null;
   daily: DailyState;
+  // Earned achievement ids in the order earned; one set across both modes.
+  achievements: string[];
 }
 
 export const emptyStats = (): Stats => ({
@@ -93,6 +95,7 @@ export const emptyState = (): SavedState => ({
   served: [],
   stage: null,
   daily: emptyDaily(),
+  achievements: [],
 });
 
 const isWordList = (value: unknown): value is string[] =>
@@ -186,6 +189,14 @@ export function loadState(): SavedState {
       served: isWordList(parsed.served) ? parsed.served : [],
       stage: loadStage(parsed.stage),
       daily: loadDaily(parsed.daily),
+      // Additive like the hint and streak fields, so no version bump.
+      achievements: Array.isArray(parsed.achievements)
+        ? [
+            ...new Set(
+              parsed.achievements.filter((id) => typeof id === "string"),
+            ),
+          ]
+        : [],
     };
   } catch {
     return emptyState();

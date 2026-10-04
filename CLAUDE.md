@@ -68,6 +68,15 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
   updated in `recordWord`). Additive, defaulted by `loadStats`, no version
   bump. Stats shows them in a Streaks table, with daily's consecutive-days
   streak as its first row.
+- **Achievements:** `src/lib/achievements.ts` defines 10 badges, each an
+  `earned(context)` predicate. One set shared by both modes
+  (`SavedState.achievements`, ids in the order earned), so milestones sum
+  endless and daily stats and streak badges take the best of either. The
+  reducer checks `newlyEarned` at the end of `finishWord`, so older saves
+  catch up on their next word. New ids also queue in `GameState.unlocked`
+  for `AchievementToast` (`role="status"`, 4s, then `dismissUnlocked`).
+  Unknown ids survive loading, so badges from a newer build outlive an
+  older one. Additive, no version bump.
 - **Share text:** `src/lib/shareText.ts` builds a spoiler-free summary
   (title, score, one row per word: ⬛ per missed guess then 🟦 scored /
   🟧 unscored / ❌ revealed, points, boss ×N, 💡 per hint, clean bonus line) ending in
@@ -154,4 +163,4 @@ yarn words           # regenerate src/data/{answers,guesses}.ts from scripts/dat
 ## Open TODOs
 
 Tracked as issues in the [fivefold GitHub Project](https://github.com/users/craigmcn/projects/20):
-achievements, hard mode, definitions.
+hard mode, definitions.

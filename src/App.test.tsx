@@ -199,6 +199,34 @@ describe("App", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("toasts a new achievement", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard("stand{Enter}");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Achievement unlocked: First try",
+    );
+  });
+
+  it("lists achievements in the stats dialog", async () => {
+    saveState(seededState({ achievements: ["clean-stage"] }));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Stats" }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", { name: "Achievements (1 of 10)" }),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByText("Spotless").closest("li"),
+    ).toHaveTextContent("Spotless, earned");
+    expect(
+      within(dialog).getByText("First try").closest("li"),
+    ).toHaveTextContent("First try, not yet earned");
+    expect(await axe(dialog)).toHaveNoViolations();
+  });
+
   it("opens the stats dialog", async () => {
     const user = userEvent.setup();
     render(<App />);

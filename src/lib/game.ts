@@ -1,4 +1,5 @@
 import { GUESSES } from "../data/guesses";
+import { newlyEarned } from "./achievements";
 import { nextEliminations, nextReveal } from "./hints";
 import {
   CLEAN_STAGE_BONUS,
@@ -25,6 +26,8 @@ export interface GameState {
   message: string | null;
   // Bumped on each rejected guess so the UI can replay the shake animation.
   rejections: number;
+  // Achievements earned but not yet shown; the toast dismisses them.
+  unlocked: string[];
 }
 
 export type GameAction =
@@ -35,6 +38,7 @@ export type GameAction =
   | { type: "nextWord" }
   | { type: "revealLetter" }
   | { type: "eliminateLetters" }
+  | { type: "dismissUnlocked" }
   | { type: "newStage"; words: string[]; served: string[] }
   | { type: "setMode"; mode: Mode }
   | { type: "startDaily"; day: number; words: string[] };
@@ -134,11 +138,25 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
   } else {
     saved = { ...saved, stats };
   }
+  saved = withActiveStage(saved, { ...stage, results });
+  const earned = newlyEarned({
+    saved,
+    result,
+    index: stage.cursor,
+    stage: stageDone ? results : null,
+  });
+  if (earned.length > 0) {
+    saved = { ...saved, achievements: [...saved.achievements, ...earned] };
+  }
   return {
     ...state,
     input: "",
     message: null,
-    saved: withActiveStage(saved, { ...stage, results }),
+    // Same array when nothing new was earned, so the toast's timer (keyed on
+    // the badge count) isn't restarted by every finished word.
+    unlocked:
+      earned.length > 0 ? [...state.unlocked, ...earned] : state.unlocked,
+    saved,
   };
 }
 
@@ -151,6 +169,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...cleared,
         saved: { ...newStage(state.saved, action), mode: "endless" },
       };
+    case "dismissUnlocked":
+      return state.unlocked.length === 0 ? state : { ...state, unlocked: [] };
     case "setMode":
       if (state.saved.mode === action.mode) return state;
       return { ...cleared, saved: { ...state.saved, mode: action.mode } };
