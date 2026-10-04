@@ -1,4 +1,4 @@
-import { STAGE_LENGTH, type WordResult } from "./scoring";
+import { SCORED_GUESSES, STAGE_LENGTH, type WordResult } from "./scoring";
 
 const STORAGE_KEY = "fivefold";
 const VERSION = 2;
@@ -11,6 +11,12 @@ export interface Stats {
   totalPoints: number;
   bestStageScore: number;
   hintsUsed: number;
+  // Consecutive clean stages, and consecutive words solved within the scored
+  // guesses (hints allowed; a reveal or an unscored solve breaks it).
+  cleanStreak: number;
+  maxCleanStreak: number;
+  wordStreak: number;
+  maxWordStreak: number;
   // Solved-word counts keyed by number of guesses taken (1, 2, …, n).
   guessHistogram: Record<number, number>;
 }
@@ -65,6 +71,10 @@ export const emptyStats = (): Stats => ({
   totalPoints: 0,
   bestStageScore: 0,
   hintsUsed: 0,
+  cleanStreak: 0,
+  maxCleanStreak: 0,
+  wordStreak: 0,
+  maxWordStreak: 0,
   guessHistogram: {},
 });
 
@@ -137,12 +147,19 @@ function loadStage(value: unknown): StageProgress | null {
   };
 }
 
+// Streak fields were added without a version bump (additive, like hints);
+// spreading over emptyStats defaults them for older saves.
+const loadStats = (value: unknown): Stats => ({
+  ...emptyStats(),
+  ...(value && typeof value === "object" ? value : {}),
+});
+
 function loadDaily(value: unknown): DailyState {
   if (!value || typeof value !== "object") return emptyDaily();
   const d = value as Partial<DailyState>;
   return {
     stage: loadStage(d.stage),
-    stats: { ...emptyStats(), ...d.stats },
+    stats: loadStats(d.stats),
     streak: isCount(d.streak) ? d.streak : 0,
     maxStreak: isCount(d.maxStreak) ? d.maxStreak : 0,
     lastCompleted: Number.isInteger(d.lastCompleted) ? d.lastCompleted! : null,
@@ -165,7 +182,7 @@ export function loadState(): SavedState {
     return {
       version: VERSION,
       mode: parsed.mode === "daily" ? "daily" : "endless",
-      stats: { ...emptyStats(), ...parsed.stats },
+      stats: loadStats(parsed.stats),
       served: isWordList(parsed.served) ? parsed.served : [],
       stage: loadStage(parsed.stage),
       daily: loadDaily(parsed.daily),
@@ -188,8 +205,14 @@ export function recordWord(stats: Stats, result: WordResult): Stats {
   if (!result.gaveUp) {
     histogram[result.guesses] = (histogram[result.guesses] ?? 0) + 1;
   }
+  const wordStreak =
+    !result.gaveUp && result.guesses <= SCORED_GUESSES
+      ? stats.wordStreak + 1
+      : 0;
   return {
     ...stats,
+    wordStreak,
+    maxWordStreak: Math.max(stats.maxWordStreak, wordStreak),
     wordsPlayed: stats.wordsPlayed + 1,
     wordsGivenUp: stats.wordsGivenUp + (result.gaveUp ? 1 : 0),
     hintsUsed: stats.hintsUsed + result.hints,
@@ -223,8 +246,11 @@ export function recordStage(
   clean: boolean,
   bonus: number,
 ): Stats {
+  const cleanStreak = clean ? stats.cleanStreak + 1 : 0;
   return {
     ...stats,
+    cleanStreak,
+    maxCleanStreak: Math.max(stats.maxCleanStreak, cleanStreak),
     stagesCompleted: stats.stagesCompleted + 1,
     cleanStages: stats.cleanStages + (clean ? 1 : 0),
     totalPoints: stats.totalPoints + bonus,

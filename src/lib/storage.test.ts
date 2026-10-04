@@ -9,6 +9,7 @@ import {
   recordStage,
   recordWord,
   saveState,
+  type Stats,
 } from "./storage";
 
 describe("storage", () => {
@@ -218,6 +219,54 @@ describe("storage", () => {
       ...emptyDaily(),
       maxStreak: 5,
       lastCompleted: 3,
+    });
+  });
+});
+
+describe("stage and word streaks", () => {
+  const word = (guesses: number, gaveUp = false) => ({
+    answer: "stand",
+    guesses,
+    points: 0,
+    gaveUp,
+    hints: 0,
+  });
+
+  it("counts words solved within six guesses, hints allowed", () => {
+    let stats = emptyStats();
+    stats = recordWord(stats, word(1));
+    stats = recordWord(stats, { ...word(6), hints: 2 });
+    expect(stats).toMatchObject({ wordStreak: 2, maxWordStreak: 2 });
+  });
+
+  it("breaks the word streak on a reveal or a seventh guess", () => {
+    let stats = recordWord(recordWord(emptyStats(), word(2)), word(3));
+    stats = recordWord(stats, word(7));
+    expect(stats).toMatchObject({ wordStreak: 0, maxWordStreak: 2 });
+    stats = recordWord(recordWord(stats, word(1)), word(4, true));
+    expect(stats).toMatchObject({ wordStreak: 0, maxWordStreak: 2 });
+  });
+
+  it("counts consecutive clean stages and keeps the best", () => {
+    let stats = recordStage(emptyStats(), 700, true, 100);
+    stats = recordStage(stats, 700, true, 100);
+    expect(stats).toMatchObject({ cleanStreak: 2, maxCleanStreak: 2 });
+    stats = recordStage(stats, 400, false, 0);
+    expect(stats).toMatchObject({ cleanStreak: 0, maxCleanStreak: 2 });
+  });
+
+  it("defaults streaks for saves made before they existed", () => {
+    const older: Partial<Stats> = emptyStats();
+    delete older.cleanStreak;
+    delete older.wordStreak;
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({ ...emptyState(), stats: { ...older, totalPoints: 5 } }),
+    );
+    expect(loadState().stats).toMatchObject({
+      totalPoints: 5,
+      cleanStreak: 0,
+      wordStreak: 0,
     });
   });
 });

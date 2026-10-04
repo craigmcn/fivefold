@@ -171,6 +171,34 @@ describe("App", () => {
     ).toBeVisible();
   });
 
+  it("shows endless streaks without a days row", async () => {
+    saveState(
+      seededState({
+        stats: {
+          ...seededState().stats,
+          cleanStreak: 2,
+          maxCleanStreak: 3,
+          wordStreak: 17,
+          maxWordStreak: 25,
+        },
+      }),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Stats" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Endless statistics" });
+    const row = (name: RegExp) =>
+      within(within(dialog).getByRole("row", { name }))
+        .getAllByRole("cell")
+        .map((c) => c.textContent);
+    expect(row(/Clean stages/)).toEqual(["2", "3"]);
+    expect(row(/Words in 6 or fewer/)).toEqual(["17", "25"]);
+    expect(
+      within(dialog).queryByRole("row", { name: /Days completed/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("opens the stats dialog", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -539,12 +567,12 @@ describe("App in daily mode", () => {
     await user.click(screen.getByRole("button", { name: "Stats" }));
 
     const dialog = screen.getByRole("dialog", { name: "Daily statistics" });
-    expect(
-      within(dialog).getByText("Current streak").nextSibling,
-    ).toHaveTextContent("4");
-    expect(
-      within(dialog).getByText("Best streak").nextSibling,
-    ).toHaveTextContent("6");
+    const cells = (name: string) =>
+      within(within(dialog).getByRole("row", { name: new RegExp(name) }))
+        .getAllByRole("cell")
+        .map((c) => c.textContent);
+    expect(cells("Days completed")).toEqual(["4", "6"]);
+    expect(cells("Clean dailies")).toEqual(["0", "0"]);
     expect(within(dialog).getByText("Dailies completed")).toBeVisible();
     expect(within(dialog).getByText("Best daily")).toBeVisible();
     expect(within(dialog).queryByText("Stages")).not.toBeInTheDocument();
