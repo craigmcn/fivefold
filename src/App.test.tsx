@@ -200,6 +200,13 @@ describe("App", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("defines the word once it's solved", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard("stand{Enter}");
+    expect(await screen.findByText("Be upright on one's feet")).toBeVisible();
+  });
+
   it("toasts a new achievement", async () => {
     const user = userEvent.setup();
     render(<App />);

@@ -3341,6 +3341,7 @@ __metadata:
     vite-plugin-pwa: "npm:^1.3.0"
     vitest: "npm:^4"
     vitest-axe: "npm:1.0.0-pre.5"
+    wordnet-db: "npm:3.1.14"
   languageName: unknown
   linkType: soft
 
@@ -6028,6 +6029,13 @@ __metadata:
   version: 1.2.5
   resolution: "word-wrap@npm:1.2.5"
   checksum: 10c0/e0e4a1ca27599c92a6ca4c32260e8a92e8a44f4ef6ef93f803f8ed823f486e0889fc0b93be4db59c8d51b3064951d25e43d434e95dc8c960cc3a63d65d00ba20
+  languageName: node
+  linkType: hard
+
+"wordnet-db@npm:3.1.14":
+  version: 3.1.14
+  resolution: "wordnet-db@npm:3.1.14"
+  checksum: 10c0/b0717395b07f2ca11db71f825c91fbe88e63cfa9ec4f4383857958ba8b280c41ddd1adadfa407320fc82d517a823a5726f42a99aef34c18d82728c57c9072b71
   languageName: node
   linkType: hard
 

@@ -23,6 +23,11 @@ test("reloads and plays offline once the service worker is in control", async ({
   await page.keyboard.press("Enter");
   await expect(page.getByText("Guess 2 is worth 50 points")).toBeVisible();
 
+  // Definitions are a lazily loaded chunk; the worker must have precached it.
+  await page.keyboard.type("stand");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Be upright on one's feet")).toBeVisible();
+
   // Shared links carry ?stage=, which must still match the precached page.
   await page.goto("/?stage=nope");
   await expect(page.getByRole("heading", { name: "Fivefold" })).toBeVisible();

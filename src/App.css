@@ -336,6 +336,16 @@ main {
   font-weight: 600;
 }
 
+/* Full width so it wraps under the headline rather than beside the button. */
+.word-complete .definition {
+  order: 1;
+  flex-basis: 100%;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
 .keyboard {
   display: flex;
   flex-direction: column;
@@ -493,6 +503,15 @@ main {
 .modal-header h2 {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.how-to-play .credits {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.how-to-play .credits a {
+  color: inherit;
 }
 
 .how-to-play ul {
