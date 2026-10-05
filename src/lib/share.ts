@@ -62,7 +62,10 @@ export function appLink(): string {
   return url.toString();
 }
 
-export function stageLink(words: readonly string[]): string {
+// Null when a word is no longer an answer: a stage saved before the list
+// changed can't be encoded, and must not crash the summary that shows it.
+export function stageLink(words: readonly string[]): string | null {
+  if (!words.every((word) => INDEX.has(word))) return null;
   const url = new URL(appLink());
   url.searchParams.set(STAGE_PARAM, encodeStage(words));
   return url.toString();

@@ -339,6 +339,37 @@ describe("App", () => {
     expect(screen.queryByText(/copied|Couldn't share/)).not.toBeInTheDocument();
   });
 
+  it("shows the summary when a saved stage has a word no longer in the answers", () => {
+    // "mammy" left the answer list after some players had it in a stage;
+    // building its share link used to throw and blank the app on every load.
+    const words = ["mammy", ...STAGE_WORDS.slice(1)];
+    saveState(
+      seededState({
+        stage: {
+          ...seededState().stage!,
+          words,
+          cursor: 9,
+          guesses: [words[9]],
+          results: words.map((answer) => ({
+            answer,
+            guesses: 1,
+            points: 60,
+            gaveUp: false,
+            hints: 0,
+          })),
+        },
+      }),
+    );
+    render(<App />);
+
+    expect(
+      screen.getByRole("heading", { name: "Stage 1 complete" }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Share results" })).toBeVisible();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start stage 2" })).toBeVisible();
+  });
+
   it("offers a link to the finished stage", async () => {
     saveState(
       seededState({

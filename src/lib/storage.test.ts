@@ -140,6 +140,31 @@ describe("storage", () => {
     expect(loaded.stats.totalPoints).toBe(90);
   });
 
+  it("defaults corrupt stats fields instead of trusting them", () => {
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({
+        ...emptyState(),
+        stats: {
+          ...emptyStats(),
+          totalPoints: 120,
+          wordStreak: "7",
+          cleanStages: -2,
+          guessHistogram: { 1: 3, 2: "x", 0: 4, nope: 1 },
+        },
+        daily: { ...emptyDaily(), stats: { guessHistogram: null } },
+      }),
+    );
+    const loaded = loadState();
+    expect(loaded.stats).toMatchObject({
+      totalPoints: 120,
+      wordStreak: 0,
+      cleanStages: 0,
+      guessHistogram: { 1: 3 },
+    });
+    expect(loaded.daily.stats.guessHistogram).toEqual({});
+  });
+
   it("drops malformed hint fields without losing the stage", () => {
     const stage = {
       ...emptyState(),

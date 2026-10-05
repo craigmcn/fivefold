@@ -156,12 +156,29 @@ function loadStage(value: unknown): StageProgress | null {
   };
 }
 
-// Streak fields were added without a version bump (additive, like hints);
-// spreading over emptyStats defaults them for older saves.
-const loadStats = (value: unknown): Stats => ({
-  ...emptyStats(),
-  ...(value && typeof value === "object" ? value : {}),
-});
+// Field by field, so a corrupt counter or histogram falls back to its
+// default instead of crashing the Stats dialog or turning sums into strings.
+// Missing fields (streaks, hintsUsed: added without a version bump) default
+// the same way.
+function loadStats(value: unknown): Stats {
+  const raw = (value && typeof value === "object" ? value : {}) as Record<
+    string,
+    unknown
+  >;
+  const stats = emptyStats();
+  for (const key of Object.keys(stats) as (keyof Stats)[]) {
+    if (key !== "guessHistogram" && isCount(raw[key])) stats[key] = raw[key];
+  }
+  const histogram = raw.guessHistogram;
+  if (histogram && typeof histogram === "object") {
+    stats.guessHistogram = Object.fromEntries(
+      Object.entries(histogram).filter(
+        ([guesses, count]) => /^[1-9]\d*$/.test(guesses) && isCount(count),
+      ),
+    );
+  }
+  return stats;
+}
 
 function loadDaily(value: unknown): DailyState {
   if (!value || typeof value !== "object") return emptyDaily();
@@ -215,6 +232,15 @@ export function saveState(state: SavedState): void {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // Progress just won't persist; the game itself still works.
+  }
+}
+
+// The error screen's way out when a save makes the app fail to render.
+export function clearState(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Nothing more can be done; a reload will at least retry.
   }
 }
 

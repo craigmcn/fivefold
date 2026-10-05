@@ -657,3 +657,9 @@ main {
   color: var(--tile-correct-text);
   border-radius: 0.2rem;
 }
+
+.crash {
+  max-width: 28rem;
+  margin: 3rem auto;
+  padding: 0 1rem;
+}
