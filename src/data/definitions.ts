@@ -2190,7 +2190,7 @@ export const DEFINITIONS: Readonly<Record<string, string>> = {
   speak: "Express in speech",
   spear: "A long pointed rod used as a tool or weapon",
   speck: "A very small spot",
-  speed: "Move hurridly",
+  speed: "Move quickly; the rate at which something moves",
   spell:
     "A psychological state induced by (or as if induced by) a magical incantation",
   spelt: "Hardy wheat grown mostly in Europe for livestock feed",

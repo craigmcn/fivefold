@@ -17,15 +17,42 @@ interface WiktionaryEntry {
   definitions: { definition: string }[];
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  apos: "'",
+  gt: ">",
+  lt: "<",
+  mdash: "—",
+  nbsp: " ",
+  ndash: "–",
+  quot: '"',
+};
+
+// Unknown named entities are kept as text: a stray "&foo;" is easy to spot in
+// the TSV, whereas dropping it would silently corrupt the definition.
+function decodeEntities(text: string): string {
+  return text.replace(
+    /&(#x[\da-f]+|#\d+|[a-z]+);/gi,
+    (entity, body: string) => {
+      if (body[0] === "#") {
+        const hex = body[1] === "x" || body[1] === "X";
+        return String.fromCodePoint(
+          parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10),
+        );
+      }
+      return NAMED_ENTITIES[body.toLowerCase()] ?? entity;
+    },
+  );
+}
+
 // The REST definitions are HTML fragments; some carry inline style blocks.
 function plainText(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/g, "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\.mw-parser-output[^}]*\}/g, "")
-    .replace(/&#?\w+;/g, (entity) =>
-      entity === "&amp;" ? "&" : entity === "&nbsp;" ? " " : "",
-    )
+  return decodeEntities(
+    html
+      .replace(/<style[\s\S]*?<\/style>/g, "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\.mw-parser-output[^}]*\}/g, ""),
+  )
     .split("\n")[0]
     .trim();
 }
