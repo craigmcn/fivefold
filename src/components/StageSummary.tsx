@@ -22,10 +22,9 @@ type CopyState = "idle" | "copied" | "failed";
 
 // The link stays visible in a read-only field so it can still be selected by
 // hand where the Clipboard API is missing or refused (e.g. non-HTTPS).
-function ShareLink({ words }: { words: readonly string[] }) {
+function ShareLink({ link }: { link: string }) {
   const [copy, setCopy] = useState<CopyState>("idle");
   const inputId = useId();
-  const link = stageLink(words);
 
   async function copyLink() {
     try {
@@ -105,20 +104,14 @@ export function StageSummary({
   hard,
 }: StageSummaryProps) {
   const clean = isCleanStage(results);
+  const link = shareWords ? stageLink(shareWords) : null;
   return (
     <section className="stage-summary" aria-labelledby="stage-summary-title">
       <h2 id="stage-summary-title">
         {label} complete{hard && " (hard mode)"}
       </h2>
-      <ShareResults
-        text={shareText(
-          label,
-          results,
-          shareWords ? stageLink(shareWords) : appLink(),
-          hard,
-        )}
-      />
-      {shareWords && <ShareLink words={shareWords} />}
+      <ShareResults text={shareText(label, results, link ?? appLink(), hard)} />
+      {link && <ShareLink link={link} />}
       <table>
         <thead>
           <tr>

@@ -139,6 +139,8 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   migration if the shape changes incompatibly. Purely additive fields (the
   hint fields) are defaulted in `loadStage` without a bump instead, so older
   cached builds can still read new saves.
+  Stats load field by field (`loadStats`): a corrupt counter or histogram
+  falls back to its default rather than crashing the Stats dialog.
 - **Evaluation:** `src/lib/evaluate.ts`: two-pass Wordle scoring so
   duplicate letters are handled correctly; `keyboardStatuses` keeps each
   letter's best status for the on-screen keyboard.
@@ -186,6 +188,16 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   (`yarn build:netlify`, publish dir `netlify`). No GitHub Pages yet.
 - Word lists will drift as NYT adds answers; re-sync `answers.txt` from the
   wordle-helper repo's `words.ts` when needed.
+- **Changing the answer list** (adding, removing or excluding words, or
+  anything that moves tier cut-offs) has knock-on effects: every existing
+  share link becomes invalid (checksum), future dailies change (they're drawn
+  from the tier lists), and saved stages may hold words that are no longer
+  answers. The last is handled: `stageLink` returns null rather than
+  throwing, so the summary just drops the link (regression test in
+  `App.test.tsx`). Review new answers' definitions too.
+- `src/components/ErrorBoundary.tsx` wraps `App` in `main.tsx`: saved state
+  is persistent, so a render error it causes would recur on every load. The
+  fallback offers "Try again" and "Reset game data" (`clearState`).
 
 ## Open TODOs
 

@@ -57,7 +57,7 @@ describe("shared links", () => {
   });
 
   it("builds a link that reads back to the same words", () => {
-    const link = new URL(stageLink(STAGE_WORDS));
+    const link = new URL(stageLink(STAGE_WORDS)!);
     window.history.replaceState(null, "", link.pathname + link.search);
     expect(readSharedLink()).toEqual({ words: STAGE_WORDS });
   });
@@ -66,10 +66,15 @@ describe("shared links", () => {
     // Production's relative base; Vitest itself serves from "/".
     vi.stubEnv("BASE_URL", "./");
     window.history.replaceState(null, "", "/fivefold/?x=1#top");
-    const link = new URL(stageLink(STAGE_WORDS));
+    const link = new URL(stageLink(STAGE_WORDS)!);
     expect(link.pathname).toBe("/fivefold/");
     expect([...link.searchParams.keys()]).toEqual(["stage"]);
     expect(link.hash).toBe("");
+  });
+
+  it("has no link for a stage holding a word that's no longer an answer", () => {
+    // e.g. a stage saved before "mammy" left the answer list.
+    expect(stageLink(["mammy", ...STAGE_WORDS.slice(1)])).toBeNull();
   });
 
   it("flags an unreadable code and returns null with no code", () => {
