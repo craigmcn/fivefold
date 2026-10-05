@@ -140,6 +140,30 @@ describe("storage", () => {
     expect(loaded.stats.totalPoints).toBe(90);
   });
 
+  it("loads real, fully populated stats unchanged", () => {
+    // Guards the field-by-field loadStats: valid data must never be reset.
+    const stats = {
+      ...emptyStats(),
+      wordsPlayed: 231,
+      wordsGivenUp: 4,
+      stagesCompleted: 23,
+      cleanStages: 6,
+      totalPoints: 10875,
+      bestStageScore: 1395,
+      hintsUsed: 12,
+      cleanStreak: 2,
+      maxCleanStreak: 4,
+      wordStreak: 17,
+      maxWordStreak: 41,
+      guessHistogram: { 1: 3, 2: 40, 3: 88, 4: 61, 5: 22, 6: 9, 7: 3, 9: 1 },
+    };
+    const daily = { ...emptyDaily(), stats: { ...stats, totalPoints: 4321 } };
+    saveState({ ...emptyState(), stats, daily });
+    const loaded = loadState();
+    expect(loaded.stats).toEqual(stats);
+    expect(loaded.daily.stats).toEqual(daily.stats);
+  });
+
   it("defaults corrupt stats fields instead of trusting them", () => {
     window.localStorage.setItem(
       "fivefold",

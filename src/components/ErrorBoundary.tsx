@@ -20,13 +20,15 @@ export class ErrorBoundary extends Component<
   render() {
     if (!this.state.failed) return this.props.children;
     return (
-      <main className="crash" role="alert">
-        <h1>Something went wrong</h1>
-        <p>
-          Fivefold hit an error it couldn&apos;t recover from. Try again, and if
-          it keeps happening, resetting clears your saved game, stats and
-          achievements.
-        </p>
+      <main className="crash">
+        <div role="alert">
+          <h1>Something went wrong</h1>
+          <p>
+            Fivefold hit an error it couldn&apos;t recover from. Try again, and
+            if it keeps happening, resetting clears your saved game, stats and
+            achievements.
+          </p>
+        </div>
         <div className="modal-actions">
           <button
             type="button"

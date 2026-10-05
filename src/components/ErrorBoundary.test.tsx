@@ -34,6 +34,10 @@ describe("ErrorBoundary", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
+    // The alert wraps only the message, so the page keeps its main landmark.
+    expect(screen.getByRole("main")).toContainElement(
+      screen.getByRole("alert"),
+    );
     await user.click(screen.getByRole("button", { name: "Reset game data" }));
     expect(window.localStorage.getItem("fivefold")).toBeNull();
     expect(reload).toHaveBeenCalledOnce();
