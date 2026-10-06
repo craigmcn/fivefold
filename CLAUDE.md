@@ -208,7 +208,9 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   through CSSOM, so no `'unsafe-inline'`), plus the inline trailing-slash
   script's hash. Editing that script means updating the hash;
   `src/securityHeaders.test.ts` fails until you do. Adding any external
-  resource (CDN, font, analytics) needs a CSP change too.
+  resource (CDN, font, analytics) needs a CSP change too. On deploy previews,
+  Netlify's injected drawer (an inline-styled div and an `app.netlify.com`
+  frame) trips the CSP; production doesn't get it, so ignore those.
 - Word lists will drift as NYT adds answers; re-sync `answers.txt` from the
   wordle-helper repo's `words.ts` when needed.
 - **Changing the answer list** (adding, removing or excluding words, or
