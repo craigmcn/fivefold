@@ -89,7 +89,9 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   cursor so `loadStage` clears hints a pre-hints build carried forward; `WordResult.hints` and
   `Stats.hintsUsed` record usage. Hint buttons `preventDefault` on mousedown
   like the keys.
-- **Streaks:** `Stats` (per mode) has `cleanStreak`/`maxCleanStreak`
+- **Streaks:** the stats and streak rules (`recordWord`, `recordStage`,
+  `recordDailyStreak`, `currentStreak`) live in `src/lib/stats.ts`, apart
+  from persistence. `Stats` (per mode) has `cleanStreak`/`maxCleanStreak`
   (updated in `recordStage`) and `wordStreak`/`maxWordStreak` (words solved
   within 6 guesses, hints allowed, a reveal or unscored solve breaks it;
   updated in `recordWord`). Additive, defaulted by `loadStats`, no version
@@ -130,7 +132,8 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   finished word until "next word" so its board remains visible; a word is
   done when `results.length > cursor`. Randomness (`pickStage`) happens in
   the App event handler, never in the reducer.
-- **Persistence:** `src/lib/storage.ts`: one versioned `localStorage` key
+- **Persistence:** `src/lib/storage.ts` (the saved shape and its
+  validation only): one versioned `localStorage` key
   (`fivefold`, `version: 2`) holding the mode, endless stats, served
   answers and stage, and a `daily` block (stage, stats, streak). Version 1
   saves load as endless play with empty daily state. Unknown versions or
