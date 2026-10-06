@@ -40,7 +40,9 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   senses, its first sense that isn't a proper noun or domain-labelled),
   then `scripts/data/definitions-wiktionary.tsv` for WordNet's ~140 gaps
   (inflections like "began", modern words). Only `yarn definitions:fetch`
-  touches the network. `src/data/definitions.test.ts` fails if an answer
+  touches the network; its work sits behind a direct-run check, so its
+  tests (`scripts/fetch-wiktionary.test.ts`, Node environment) import the
+  HTML helpers without fetching. `src/data/definitions.test.ts` fails if an answer
   lacks a definition or one carries source markup. WordNet's ordering of
   untagged senses is arbitrary, so review new answers' definitions and add
   overrides. Licences: WordNet's notice ships as `public/licenses/wordnet.txt`;
