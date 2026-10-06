@@ -29,8 +29,15 @@ import { HINT_STEPS, pointsFor, STAGE_LENGTH, stageScore } from "./lib/scoring";
 import { startSession, type Session } from "./lib/session";
 import { clearSharedLink, readSharedLink, type SharedLink } from "./lib/share";
 import { pickStage } from "./lib/stage";
-import { currentStreak, loadState, saveState, type Mode } from "./lib/storage";
+import {
+  currentStreak,
+  loadState,
+  saveState,
+  type Mode,
+  type SavedState,
+} from "./lib/storage";
 import { useGameKeys } from "./lib/useGameKeys";
+import { useSavedSync } from "./lib/useSavedSync";
 
 type Panel = "help" | "stats" | null;
 
@@ -59,6 +66,12 @@ function App() {
 
   useEffect(() => saveState(saved), [saved]);
   useEffect(clearSharedLink, []);
+  useSavedSync(
+    useCallback(
+      (next: SavedState) => dispatch({ type: "replaceSaved", saved: next }),
+      [],
+    ),
+  );
 
   function acceptShare() {
     if (!pendingShare) return;

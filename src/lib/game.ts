@@ -43,7 +43,8 @@ export type GameAction =
   | { type: "setHardMode"; on: boolean }
   | { type: "newStage"; words: string[]; served: string[] }
   | { type: "setMode"; mode: Mode }
-  | { type: "startDaily"; day: number; words: string[] };
+  | { type: "startDaily"; day: number; words: string[] }
+  | { type: "replaceSaved"; saved: SavedState };
 
 export const isWordDone = (stage: StageProgress): boolean =>
   stage.results.length > stage.cursor;
@@ -175,6 +176,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   const cleared = { ...state, input: "", message: null };
 
   switch (action.type) {
+    case "replaceSaved": {
+      // Another tab saved. Half-typed input only survives if this tab's
+      // current stage is still the same word in the same state.
+      const same =
+        JSON.stringify(activeStage(state.saved)) ===
+        JSON.stringify(activeStage(action.saved));
+      return { ...(same ? state : cleared), saved: action.saved };
+    }
     case "newStage":
       return {
         ...cleared,

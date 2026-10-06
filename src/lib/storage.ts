@@ -1,6 +1,6 @@
 import { SCORED_GUESSES, STAGE_LENGTH, type WordResult } from "./scoring";
 
-const STORAGE_KEY = "fivefold";
+export const STORAGE_KEY = "fivefold";
 const VERSION = 2;
 
 export interface Stats {
@@ -229,7 +229,11 @@ export function loadState(): SavedState {
 
 export function saveState(state: SavedState): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // An unchanged write is skipped: another tab's change reaches this one as
+    // new state, and writing it straight back would bounce between tabs.
+    const json = JSON.stringify(state);
+    if (window.localStorage.getItem(STORAGE_KEY) === json) return;
+    window.localStorage.setItem(STORAGE_KEY, json);
   } catch {
     // Progress just won't persist; the game itself still works.
   }
