@@ -203,6 +203,12 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   a first load is never served by its own installing worker.
 - Deployed to Netlify at https://endearing-blancmange-0cb3b7.netlify.app/
   (`yarn build:netlify`, publish dir `netlify`). No GitHub Pages yet.
+  `netlify.toml` sets the build and strict security headers: a CSP of
+  `'self'` only (nothing loads cross-origin; React's `style` props go
+  through CSSOM, so no `'unsafe-inline'`), plus the inline trailing-slash
+  script's hash. Editing that script means updating the hash;
+  `src/securityHeaders.test.ts` fails until you do. Adding any external
+  resource (CDN, font, analytics) needs a CSP change too.
 - Word lists will drift as NYT adds answers; re-sync `answers.txt` from the
   wordle-helper repo's `words.ts` when needed.
 - **Changing the answer list** (adding, removing or excluding words, or
