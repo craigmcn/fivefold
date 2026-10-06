@@ -21,6 +21,11 @@ jobs:
 
       - run: yarn install --immutable
 
+      # The word lists and definitions are generated; this catches an input
+      # edited without `yarn words`, or a generated file edited by hand.
+      - name: Check generated word data is up to date
+        run: yarn words && git diff --exit-code src/data
+
       - run: yarn format:check
 
       - run: yarn typecheck

@@ -23,7 +23,8 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
 - **Word data (generated):** `scripts/build-words.ts` builds
   `src/data/answers.ts` (answers grouped into easy/medium/hard/brutal tiers)
   and `src/data/guesses.ts` (~12.9k acceptable guesses). Never edit those
-  by hand; edit the inputs in `scripts/data/` and run `yarn words`.
+  by hand; edit the inputs in `scripts/data/` and run `yarn words` (CI
+  reruns it and fails if `src/data` changes).
   - Difficulty is a weighted percentile blend: one-letter-neighbour count
     among answers (0.35, the `_IGHT`/`_OUND` trap), rare letters by
     positional + overall frequency (0.2), repeated letters (0.15), and
