@@ -29,8 +29,8 @@ import { HINT_STEPS, pointsFor, STAGE_LENGTH, stageScore } from "./lib/scoring";
 import { startSession, type Session } from "./lib/session";
 import { clearSharedLink, readSharedLink, type SharedLink } from "./lib/share";
 import { pickStage } from "./lib/stage";
+import { currentStreak } from "./lib/stats";
 import {
-  currentStreak,
   loadState,
   saveState,
   type Mode,

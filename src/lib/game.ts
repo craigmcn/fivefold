@@ -12,14 +12,8 @@ import {
   type WordResult,
 } from "./scoring";
 import type { PickedStage } from "./stage";
-import {
-  recordDailyStreak,
-  recordStage,
-  recordWord,
-  type Mode,
-  type SavedState,
-  type StageProgress,
-} from "./storage";
+import { recordDailyStreak, recordStage, recordWord } from "./stats";
+import type { Mode, SavedState, StageProgress } from "./storage";
 
 export interface GameState {
   saved: SavedState;
