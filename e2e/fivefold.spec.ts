@@ -125,3 +125,18 @@ test("hard mode enforces earlier clues and pays ×1.5", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByText("STAND in 2. +75 points")).toBeVisible();
 });
+
+test("a second tab follows play in the first", async ({ page, context }) => {
+  await seed(page);
+  await page.goto("/");
+  const other = await context.newPage();
+  await other.goto("/");
+  await expect(other.getByText("Guess 1 is worth 60 points")).toBeVisible();
+
+  await page.keyboard.type("crane");
+  await page.keyboard.press("Enter");
+  await expect(
+    other.getByRole("img", { name: /Guess 1: C not in the word/ }),
+  ).toBeVisible();
+  await expect(other.getByText("Guess 2 is worth 50 points")).toBeVisible();
+});

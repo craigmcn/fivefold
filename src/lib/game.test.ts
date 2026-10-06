@@ -360,3 +360,23 @@ describe("hard mode", () => {
     expect(state.saved.daily.stage!.hard).toBe(true);
   });
 });
+
+describe("another tab's save", () => {
+  it("keeps half-typed input when the current word is unchanged", () => {
+    let state = gameReducer(start(), { type: "letter", letter: "c" });
+    const saved = { ...state.saved, hardMode: true };
+    state = gameReducer(state, { type: "replaceSaved", saved });
+    expect(state.saved).toBe(saved);
+    expect(state.input).toBe("c");
+  });
+
+  it("clears input and messages once the current word has moved on", () => {
+    const other = typeWord(start(), "crane");
+    let state = typeWord(start(), "qzxvj");
+    state = gameReducer(state, { type: "letter", letter: "s" });
+    state = gameReducer(state, { type: "replaceSaved", saved: other.saved });
+    expect(state.saved.stage?.guesses).toEqual(["crane"]);
+    expect(state.input).toBe("");
+    expect(state.message).toBeNull();
+  });
+});

@@ -141,6 +141,11 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   cached builds can still read new saves.
   Stats load field by field (`loadStats`): a corrupt counter or histogram
   falls back to its default rather than crashing the Stats dialog.
+  Tabs stay in sync: `useSavedSync` listens for `storage` events on the key
+  (or `null`, a clear), runs the reloaded save through `startSession` (so a
+  reset still gets a stage), and dispatches `replaceSaved`, which keeps
+  half-typed input only if the active stage is unchanged. `saveState` skips
+  writes identical to what's stored, so a synced tab doesn't write it back.
 - **Evaluation:** `src/lib/evaluate.ts`: two-pass Wordle scoring so
   duplicate letters are handled correctly; `keyboardStatuses` keeps each
   letter's best status for the on-screen keyboard.

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -398,6 +398,50 @@ describe("App", () => {
       name: /Challenge a friend/,
     });
     expect(link.value).toContain(`?stage=${encodeStage(STAGE_WORDS)}`);
+  });
+
+  describe("another tab", () => {
+    // What the browser fires here after another tab writes the save.
+    const otherTabSaves = (key: string | null = "fivefold") =>
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key,
+            storageArea: window.localStorage,
+          }),
+        );
+      });
+
+    it("shows a guess made in another tab", () => {
+      render(<App />);
+      const saved = stored();
+      saved.stage.guesses = ["crane"];
+      window.localStorage.setItem("fivefold", JSON.stringify(saved));
+      otherTabSaves();
+      expect(
+        screen.getByRole("img", { name: /Guess 1: C not in the word/ }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Guess 2 is worth 50 points")).toBeVisible();
+    });
+
+    it("starts afresh, rather than crashing, when another tab resets", () => {
+      render(<App />);
+      window.localStorage.clear();
+      otherTabSaves(null);
+      expect(screen.getByText(/Stage 1 · Word 1 of 10/)).toBeInTheDocument();
+      expect(stored().stage.words).toHaveLength(10);
+    });
+
+    it("ignores changes to other keys", () => {
+      render(<App />);
+      const saved = stored();
+      saved.stage.guesses = ["crane"];
+      window.localStorage.setItem("fivefold", JSON.stringify(saved));
+      otherTabSaves("something-else");
+      expect(
+        screen.queryByRole("img", { name: /Guess 1: C not in the word/ }),
+      ).toBeNull();
+    });
   });
 });
 

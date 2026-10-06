@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   currentStreak,
   emptyDaily,
@@ -19,6 +19,17 @@ describe("storage", () => {
     const state = { ...emptyState(), served: ["stand"] };
     saveState(state);
     expect(loadState()).toEqual(state);
+  });
+
+  it("skips writing a save that hasn't changed", () => {
+    const state = { ...emptyState(), served: ["stand"] };
+    saveState(state);
+    const setItem = vi.spyOn(window.localStorage, "setItem");
+    saveState({ ...state });
+    expect(setItem).not.toHaveBeenCalled();
+    saveState({ ...state, served: ["party"] });
+    expect(setItem).toHaveBeenCalledOnce();
+    setItem.mockRestore();
   });
 
   it("starts fresh on corrupt or unknown-version data", () => {
