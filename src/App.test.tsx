@@ -402,14 +402,12 @@ describe("App", () => {
 
   describe("another tab", () => {
     // What the browser fires here after another tab writes the save.
-    const otherTabSaves = (key: string | null = "fivefold") =>
+    const otherTabSaves = (
+      key: string | null = "fivefold",
+      storageArea: Storage = window.localStorage,
+    ) =>
       act(() => {
-        window.dispatchEvent(
-          new StorageEvent("storage", {
-            key,
-            storageArea: window.localStorage,
-          }),
-        );
+        window.dispatchEvent(new StorageEvent("storage", { key, storageArea }));
       });
 
     it("shows a guess made in another tab", () => {
@@ -438,6 +436,17 @@ describe("App", () => {
       saved.stage.guesses = ["crane"];
       window.localStorage.setItem("fivefold", JSON.stringify(saved));
       otherTabSaves("something-else");
+      expect(
+        screen.queryByRole("img", { name: /Guess 1: C not in the word/ }),
+      ).toBeNull();
+    });
+
+    it("ignores session storage, even under the same key", () => {
+      render(<App />);
+      const saved = stored();
+      saved.stage.guesses = ["crane"];
+      window.localStorage.setItem("fivefold", JSON.stringify(saved));
+      otherTabSaves("fivefold", window.sessionStorage);
       expect(
         screen.queryByRole("img", { name: /Guess 1: C not in the word/ }),
       ).toBeNull();
