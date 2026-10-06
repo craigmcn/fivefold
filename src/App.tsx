@@ -1,102 +1,52 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useReducer, useEffect, useState } from "react";
 import "./App.css";
 import { AchievementList } from "./components/AchievementList";
 import { AchievementToast } from "./components/AchievementToast";
-import { Board, describeGuess } from "./components/Board";
+import { Board } from "./components/Board";
+import { HintBar } from "./components/HintBar";
 import { HowToPlay } from "./components/HowToPlay";
 import { Keyboard } from "./components/Keyboard";
 import { Modal } from "./components/Modal";
+import { ModeBar } from "./components/ModeBar";
+import { SharedStageDialog } from "./components/SharedStageDialog";
+import { StageHeading } from "./components/StageHeading";
 import { StageSummary } from "./components/StageSummary";
 import { StageTrack } from "./components/StageTrack";
 import { StatsPanel } from "./components/StatsPanel";
-import { WordComplete } from "./components/WordComplete";
-import { keyboardStatuses } from "./lib/evaluate";
-import { nextEliminations, nextReveal, withHints } from "./lib/hints";
+import { StatusLine } from "./components/StatusLine";
+import { announcement } from "./lib/announce";
 import { dailyWords, dayNumber } from "./lib/daily";
+import { keyboardStatuses } from "./lib/evaluate";
 import {
   gameReducer,
   hintSteps,
   isStageDone,
   isWordDone,
-  newStage,
   type GameState,
 } from "./lib/game";
-import {
-  HINT_STEPS,
-  multiplierFor,
-  pointsFor,
-  STAGE_LENGTH,
-  stageScore,
-} from "./lib/scoring";
+import { nextEliminations, nextReveal, withHints } from "./lib/hints";
+import { HINT_STEPS, pointsFor, STAGE_LENGTH, stageScore } from "./lib/scoring";
+import { startSession, type Session } from "./lib/session";
 import { clearSharedLink, readSharedLink, type SharedLink } from "./lib/share";
 import { pickStage } from "./lib/stage";
-import {
-  currentStreak,
-  loadState,
-  saveState,
-  type Mode,
-  type StageProgress,
-} from "./lib/storage";
-
-const sameWords = (a: readonly string[], b: readonly string[]) =>
-  a.join() === b.join();
-
-// Only a stage with no guesses in it (or a finished one) is replaced without
-// asking; otherwise App confirms before throwing away progress.
-const isReplaceable = (stage: StageProgress | null): boolean =>
-  !stage ||
-  isStageDone(stage) ||
-  (stage.results.length === 0 && stage.guesses.length === 0);
-
-function init(shared: SharedLink): GameState {
-  const saved = loadState();
-  const words = shared && "words" in shared ? shared.words : null;
-  let next = saved;
-  // Opening your own link (e.g. a bookmarked one) shouldn't replay a stage.
-  const alreadyPlaying =
-    words && saved.stage && sameWords(words, saved.stage.words);
-  if (words && !alreadyPlaying && isReplaceable(saved.stage)) {
-    next = newStage(saved, { words, served: saved.served });
-  } else if (!saved.stage) {
-    next = newStage(saved, pickStage(saved.served));
-  }
-  // A shared link is always an endless stage, so show it (or the confirm).
-  if (words) next = { ...next, mode: "endless" };
-  const state: GameState = {
-    saved: next,
-    input: "",
-    message:
-      shared && "invalid" in shared ? "That stage link isn't valid" : null,
-    rejections: 0,
-    unlocked: [],
-  };
-  // Reopening on a later day moves daily play on to that day's stage.
-  if (next.mode === "daily") {
-    const today = dayNumber();
-    if (next.daily.stage?.number !== today) {
-      const words = dailyWords(today);
-      return {
-        ...gameReducer(state, { type: "startDaily", day: today, words }),
-        message: state.message,
-      };
-    }
-  }
-  return state;
-}
+import { currentStreak, loadState, saveState, type Mode } from "./lib/storage";
+import { useGameKeys } from "./lib/useGameKeys";
 
 type Panel = "help" | "stats" | null;
 
+const loadSession = (shared: SharedLink): Session =>
+  startSession(loadState(), shared, dayNumber());
+
 function App() {
   const [shared] = useState(readSharedLink);
-  const [state, dispatch] = useReducer(gameReducer, shared, init);
-  const [panel, setPanel] = useState<Panel>(null);
-  const [pendingShare, setPendingShare] = useState(() =>
-    shared &&
-    "words" in shared &&
-    !sameWords(shared.words, state.saved.stage!.words)
-      ? shared.words
-      : null,
+  const [session] = useState(() => loadSession(shared));
+  const [state, dispatch] = useReducer(
+    gameReducer,
+    session,
+    (s: Session): GameState => s.state,
   );
+  const [pendingShare, setPendingShare] = useState(session.pendingShare);
+  const [panel, setPanel] = useState<Panel>(null);
   const { saved, input, message, rejections, unlocked } = state;
   const daily = saved.mode === "daily";
   // Read inline rather than via activeStage(): the React Compiler only treats
@@ -105,14 +55,7 @@ function App() {
   const answer = stage.words[stage.cursor];
   const wordDone = isWordDone(stage);
   const stageDone = isStageDone(stage);
-
   const stageLabel = daily ? `Daily #${stage.number}` : `Stage ${stage.number}`;
-  const dayStreak = daily
-    ? {
-        current: currentStreak(saved.daily, dayNumber()),
-        best: saved.daily.maxStreak,
-      }
-    : undefined;
 
   useEffect(() => saveState(saved), [saved]);
   useEffect(clearSharedLink, []);
@@ -136,6 +79,11 @@ function App() {
     () => dispatch({ type: "dismissUnlocked" }),
     [],
   );
+  const typeLetter = useCallback(
+    (letter: string) => dispatch({ type: "letter", letter }),
+    [],
+  );
+  const backspace = useCallback(() => dispatch({ type: "backspace" }), []);
 
   const advance = useCallback(() => {
     if (!wordDone) return;
@@ -153,38 +101,15 @@ function App() {
     else dispatch({ type: "submit" });
   }, [wordDone, advance]);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (document.querySelector("dialog[open]")) return;
-      // Let a focused button handle its own Enter/Space activation.
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("button") && (e.key === "Enter" || e.key === " ")) {
-        return;
-      }
-      if (e.key === "Enter") {
-        e.preventDefault();
-        submit();
-      } else if (e.key === "Backspace") {
-        dispatch({ type: "backspace" });
-      } else if (/^[a-z]$/i.test(e.key)) {
-        dispatch({ type: "letter", letter: e.key.toLowerCase() });
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [submit]);
+  useGameKeys({
+    onLetter: typeLetter,
+    onEnter: submit,
+    onBackspace: backspace,
+  });
 
   const guessNumber = stage.guesses.length + 1;
-  const multiplier = multiplierFor(stage.cursor);
   const steps = hintSteps(stage);
   const worth = pointsFor(guessNumber + steps, stage.cursor, stage.hard);
-  const revealAt = wordDone
-    ? null
-    : nextReveal(answer, stage.guesses, stage.revealed);
-  const toEliminate = wordDone
-    ? []
-    : nextEliminations(answer, stage.guesses, stage.eliminated);
   // What a hint would take off this guess's points, shown on its button.
   const hintCost = (extraSteps: number) => {
     const cost =
@@ -192,7 +117,6 @@ function App() {
       pointsFor(guessNumber + steps + extraSteps, stage.cursor, stage.hard);
     return cost > 0 ? `−${cost} pts` : "free";
   };
-  const lastGuess = stage.guesses.at(-1);
   const result = wordDone ? stage.results[stage.cursor] : undefined;
 
   return (
@@ -217,47 +141,19 @@ function App() {
       </header>
 
       <main>
-        <div className="mode-switch" role="group" aria-label="Game mode">
-          {(["endless", "daily"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              aria-pressed={saved.mode === mode}
-              // Like the on-screen keys: a clicked mode button mustn't keep
-              // focus, or Enter would press it again instead of submitting.
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => switchMode(mode)}
-            >
-              {mode === "daily" ? "Daily" : "Endless"}
-            </button>
-          ))}
-        </div>
-        <div className="hard-toggle">
-          <label>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={saved.hardMode}
-              onChange={(e) =>
-                dispatch({ type: "setHardMode", on: e.target.checked })
-              }
-            />{" "}
-            Hard mode
-          </label>
-          {saved.hardMode !== stage.hard && (
-            <span className="muted"> · from your next stage</span>
-          )}
-        </div>
-        <div className="stage-heading">
-          <p>
-            {stageLabel} · Word {stage.cursor + 1} of {STAGE_LENGTH}
-            {multiplier > 1 && (
-              <span className="boss-badge">Boss ×{multiplier}</span>
-            )}
-            {stage.hard && <span className="hard-badge">Hard</span>}
-          </p>
-          <p>{stageScore(stage.results, stage.hard)} pts</p>
-        </div>
+        <ModeBar
+          mode={saved.mode}
+          hardMode={saved.hardMode}
+          stageHard={stage.hard}
+          onMode={switchMode}
+          onHardMode={(on) => dispatch({ type: "setHardMode", on })}
+        />
+        <StageHeading
+          label={stageLabel}
+          cursor={stage.cursor}
+          hard={stage.hard}
+          score={stageScore(stage.results, stage.hard)}
+        />
         <StageTrack
           cursor={stage.cursor}
           results={stage.results}
@@ -282,82 +178,45 @@ function App() {
           />
         )}
 
-        <div className="status">
-          {message && (
-            <p className="message" aria-hidden="true">
-              {message}
-            </p>
-          )}
-          {/* A finished word's button must survive a message: once the word
-              is done nothing clears it, and the summary hides the keyboard. */}
-          {result ? (
-            <WordComplete
-              result={result}
-              onNext={advance}
-              nextLabel={
-                !stageDone
-                  ? "Next word"
-                  : daily
-                    ? "Back to endless"
-                    : `Start stage ${stage.number + 1}`
-              }
-            />
-          ) : message ? null : worth > 0 ? (
-            <p className="muted">
-              Guess {guessNumber} is worth {worth} points
-            </p>
-          ) : (
-            <p className="muted">
-              Free guesses: no points, no limit.{" "}
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => dispatch({ type: "giveUp" })}
-              >
-                Reveal the word
-              </button>
-            </p>
-          )}
-        </div>
+        <StatusLine
+          message={message}
+          result={result}
+          guessNumber={guessNumber}
+          worth={worth}
+          nextLabel={
+            !stageDone
+              ? "Next word"
+              : daily
+                ? "Back to endless"
+                : `Start stage ${stage.number + 1}`
+          }
+          onNext={advance}
+          onGiveUp={() => dispatch({ type: "giveUp" })}
+        />
 
-        {(revealAt !== null || toEliminate.length > 0) && (
-          <div className="hint-bar" role="group" aria-label="Hints">
-            {revealAt !== null && (
-              <button
-                type="button"
-                className="text-button"
-                // Like the on-screen keys: don't keep focus, or Enter would
-                // buy another hint instead of submitting the guess.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => dispatch({ type: "revealLetter" })}
-              >
-                Reveal a letter ({hintCost(HINT_STEPS.reveal)})
-              </button>
-            )}
-            {toEliminate.length > 0 && (
-              <button
-                type="button"
-                className="text-button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => dispatch({ type: "eliminateLetters" })}
-              >
-                Rule out {toEliminate.length}{" "}
-                {toEliminate.length === 1 ? "letter" : "letters"} (
-                {hintCost(HINT_STEPS.eliminate)})
-              </button>
-            )}
-          </div>
-        )}
+        <HintBar
+          canReveal={
+            !wordDone &&
+            nextReveal(answer, stage.guesses, stage.revealed) !== null
+          }
+          eliminateCount={
+            wordDone
+              ? 0
+              : nextEliminations(answer, stage.guesses, stage.eliminated).length
+          }
+          revealCost={hintCost(HINT_STEPS.reveal)}
+          eliminateCost={hintCost(HINT_STEPS.eliminate)}
+          onReveal={() => dispatch({ type: "revealLetter" })}
+          onEliminate={() => dispatch({ type: "eliminateLetters" })}
+        />
 
         <p className="visually-hidden" aria-live="polite">
-          {message ??
-            (result
-              ? result.gaveUp
-                ? `The word was ${result.answer}`
-                : `Solved: ${result.answer}, ${result.points} points`
-              : lastGuess
-                ? describeGuess(lastGuess, answer)
-                : "")}
+          {announcement({
+            message,
+            result,
+            lastGuess: stage.guesses.at(-1),
+            answer,
+          })}
         </p>
 
         {!(stageDone && wordDone) && (
@@ -368,9 +227,9 @@ function App() {
               stage.revealed,
               stage.eliminated,
             )}
-            onLetter={(letter) => dispatch({ type: "letter", letter })}
+            onLetter={typeLetter}
             onEnter={submit}
-            onBackspace={() => dispatch({ type: "backspace" })}
+            onBackspace={backspace}
           />
         )}
       </main>
@@ -389,39 +248,24 @@ function App() {
       >
         <StatsPanel
           stats={daily ? saved.daily.stats : saved.stats}
-          dayStreak={dayStreak}
+          dayStreak={
+            daily
+              ? {
+                  current: currentStreak(saved.daily, dayNumber()),
+                  best: saved.daily.maxStreak,
+                }
+              : undefined
+          }
           unit={daily ? "daily" : "stage"}
         />
         <AchievementList earned={saved.achievements} />
       </Modal>
-      <Modal
+      <SharedStageDialog
         open={pendingShare !== null}
-        title="Play a shared stage?"
-        onClose={() => setPendingShare(null)}
-      >
-        <p>
-          You're partway through stage {saved.stage!.number}. Playing the shared
-          stage abandons it, though words you've already finished stay in your
-          stats.
-        </p>
-        <div className="modal-actions">
-          <button
-            type="button"
-            className="primary"
-            onClick={acceptShare}
-            data-autofocus
-          >
-            Play shared stage
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => setPendingShare(null)}
-          >
-            Keep my stage
-          </button>
-        </div>
-      </Modal>
+        stageNumber={saved.stage!.number}
+        onAccept={acceptShare}
+        onKeep={() => setPendingShare(null)}
+      />
     </div>
   );
 }

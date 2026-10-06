@@ -144,9 +144,15 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
 - **Evaluation:** `src/lib/evaluate.ts`: two-pass Wordle scoring so
   duplicate letters are handled correctly; `keyboardStatuses` keeps each
   letter's best status for the on-screen keyboard.
-- **UI:** `src/App.tsx` wires the reducer to a window `keydown` listener
-  (skipped while a `<dialog>` is open, and for Enter/Space on a focused
-  button). Components in `src/components/`. On-screen keys and the
+- **UI:** `src/App.tsx` owns the reducer and composes presentational
+  components from `src/components/` (`ModeBar`, `StageHeading`,
+  `StatusLine`, `HintBar`, `SharedStageDialog`, …), each with its own test;
+  `App.test.tsx` covers behaviour end to end. Start-up decisions (shared
+  link, fresh stage, daily rollover, whether to ask before replacing a
+  stage) live in the pure `src/lib/session.ts` `startSession`, run once in
+  a lazy `useState`. `src/lib/useGameKeys.ts` is the window `keydown`
+  listener (skipped while a `<dialog>` is open, and for Enter/Space on a
+  focused button); `src/lib/announce.ts` builds the live-region text. On-screen keys and the
   Endless/Daily switch `preventDefault` on mousedown so they never hold
   focus (else Enter re-presses them). `Modal` focuses a `[data-autofocus]`
   child after `showModal()`, since React's `autoFocus` fires while the
