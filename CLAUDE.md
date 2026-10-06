@@ -202,7 +202,8 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
 - **Changing the answer list** (adding, removing or excluding words, or
   anything that moves tier cut-offs) has knock-on effects: every existing
   share link becomes invalid (checksum), future dailies change (they're drawn
-  from the tier lists), and saved stages may hold words that are no longer
+  from the tier lists, so regenerate `PINNED_DAILIES` in `daily.test.ts`,
+  which pins dailies #1–30 against accidental reshuffles), and saved stages may hold words that are no longer
   answers. The last is handled: `stageLink` returns null rather than
   throwing, so the summary just drops the link (regression test in
   `App.test.tsx`). Review new answers' definitions too.
