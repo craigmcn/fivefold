@@ -12,8 +12,11 @@ test("reloads and plays offline once the service worker is in control", async ({
   await expect(page.getByRole("heading", { name: "Fivefold" })).toBeVisible();
 
   // A page's first load is never served by its own installing worker; wait
-  // until clientsClaim hands it control. Strings keep DOM globals out of here.
-  await page.waitForFunction("navigator.serviceWorker.controller !== null");
+  // until clientsClaim hands it control. Strings keep DOM globals out of here;
+  // evaluate, unlike waitForFunction, isn't blocked by a CSP without eval.
+  await expect
+    .poll(() => page.evaluate("navigator.serviceWorker.controller !== null"))
+    .toBe(true);
 
   await context.setOffline(true);
   await page.reload();
