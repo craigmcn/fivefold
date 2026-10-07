@@ -113,6 +113,45 @@ describe("storage", () => {
     expect(loaded.stats.totalPoints).toBe(90);
   });
 
+  it("drops a stage whose result is missing or mistypes a field", () => {
+    const words =
+      "stand party crane flock shock early adorn guild taper dross".split(" ");
+    const good = {
+      answer: "stand",
+      guesses: 2,
+      points: 50,
+      gaveUp: false,
+      hints: 0,
+    };
+    const load = (result: object) => {
+      window.localStorage.setItem(
+        "fivefold",
+        JSON.stringify({
+          ...emptyState(),
+          stage: {
+            number: 1,
+            words,
+            cursor: 0,
+            results: [result],
+            guesses: [],
+          },
+        }),
+      );
+      return loadState().stage;
+    };
+    expect(load(good)).not.toBeNull();
+    for (const bad of [
+      { ...good, answer: undefined },
+      { ...good, answer: "party" },
+      { ...good, guesses: "2" },
+      { ...good, points: -50 },
+      { ...good, points: 12.5 },
+      { ...good, gaveUp: "no" },
+    ]) {
+      expect(load(bad)).toBeNull();
+    }
+  });
+
   it("loads real, fully populated stats unchanged", () => {
     // Guards the field-by-field loadStats: valid data must never be reset.
     const stats = {

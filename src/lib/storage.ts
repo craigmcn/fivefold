@@ -106,8 +106,24 @@ export const emptyState = (): SavedState => ({
 const isWordList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((w) => /^[a-z]{5}$/.test(String(w)));
 
-// Guards the fields App dereferences without checks; anything else is
-// display-only and can't crash rendering. Hint fields are optional here and
+const isCount = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0;
+
+// Results are rendered (WordComplete upper-cases the answer) and summed into
+// scores, so every field is checked; hints is defaulted by loadStage instead.
+function isResult(value: unknown, answer: string): boolean {
+  if (!value || typeof value !== "object") return false;
+  const r = value as Partial<WordResult>;
+  return (
+    r.answer === answer &&
+    isCount(r.guesses) &&
+    isCount(r.points) &&
+    typeof r.gaveUp === "boolean"
+  );
+}
+
+// Guards every field App and the reducer read; a stage failing it is dropped
+// rather than crashing every load. Hint fields are optional here and
 // defaulted by loadStage, so saves from before hints still load.
 function isStage(value: unknown): value is StageProgress {
   if (!value || typeof value !== "object") return false;
@@ -120,14 +136,11 @@ function isStage(value: unknown): value is StageProgress {
     s.cursor! >= 0 &&
     s.cursor! < STAGE_LENGTH &&
     Array.isArray(s.results) &&
-    s.results.every((r) => r !== null && typeof r === "object") &&
+    s.results.every((r, i) => isResult(r, s.words![i])) &&
     (s.results.length === s.cursor || s.results.length === s.cursor! + 1) &&
     isWordList(s.guesses)
   );
 }
-
-const isCount = (value: unknown): value is number =>
-  Number.isInteger(value) && (value as number) >= 0;
 
 // Hint fields were added without a version bump: they're additive, so older
 // app builds still read these saves, and defaulting them here covers saves
