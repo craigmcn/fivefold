@@ -19,6 +19,20 @@ describe("decodeEntities", () => {
     expect(decodeEntities("a &foo; b")).toBe("a &foo; b");
   });
 
+  it("keeps invalid numeric entities as text", () => {
+    expect(decodeEntities("a &#99999999; b")).toBe("a &#99999999; b");
+    expect(decodeEntities("&#x110000;")).toBe("&#x110000;");
+    // Too long to parse: parseInt gives Infinity.
+    const huge = `&#${"9".repeat(400)};`;
+    expect(decodeEntities(huge)).toBe(huge);
+    expect(decodeEntities("&#xD800; &#xdfff;")).toBe("&#xD800; &#xdfff;");
+    expect(decodeEntities("&#0; &#x0;")).toBe("&#0; &#x0;");
+    // The edges of the valid ranges still decode.
+    expect(decodeEntities("&#xD7FF;&#xE000;&#x10FFFF;")).toBe(
+      "\uD7FF\uE000\u{10FFFF}",
+    );
+  });
+
   it("decodes only once", () => {
     expect(decodeEntities("&amp;lt;")).toBe("&lt;");
   });
