@@ -125,8 +125,8 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   `served`. On a later day, `startDaily` (run at start-up, on switching to
   daily, and by `useResume` when the page becomes visible again, since an
   installed PWA can sit in memory overnight) replaces an untouched or
-  finished daily with today's, but keeps one that's under way (any guess,
-  result or hint, `isUntouched`) so it can be finished. App then shows
+  finished daily with today's, but keeps one that's under way (not
+  `isUntouched`: any guess, result or hint) so it can be finished. App then shows
   `StaleDailyNotice`, and the finished stage's button is "Play today's
   daily". A finished daily shows its summary (no share link, which would
   spoil a friend's daily) until the day changes. Streak = consecutive days with a
