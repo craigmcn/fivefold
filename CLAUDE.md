@@ -141,7 +141,9 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   answers and stage, and a `daily` block (stage, stats, streak). Version 1
   saves load as endless play with empty daily state. Unknown versions or
   corrupt data reset to empty, and a malformed saved stage or daily field is
-  dropped (the rest kept) rather than crashing; bump `VERSION` and add a
+  dropped (the rest kept) rather than crashing. A stage is malformed if any
+  result's fields are missing or mistyped, or its answer isn't the stage's
+  word at that position, since results are rendered and summed; bump `VERSION` and add a
   migration if the shape changes incompatibly. Purely additive fields (the
   hint fields) are defaulted in `loadStage` without a bump instead, so older
   cached builds can still read new saves.

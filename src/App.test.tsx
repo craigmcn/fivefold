@@ -370,6 +370,27 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Start stage 2" })).toBeVisible();
   });
 
+  it("starts a fresh stage when a saved result is malformed", () => {
+    // A result without its answer crashed WordComplete on every load, leaving
+    // only the error screen's full reset.
+    const state = seededState();
+    window.localStorage.setItem(
+      "fivefold",
+      JSON.stringify({
+        ...state,
+        stage: {
+          ...state.stage,
+          guesses: [STAGE_WORDS[0]],
+          results: [{ guesses: 1, points: 60, gaveUp: false, hints: 0 }],
+        },
+      }),
+    );
+    render(<App />);
+
+    expect(screen.getByText("Stage 1 · Word 1 of 10")).toBeVisible();
+    expect(screen.getByText("Guess 1 is worth 60 points")).toBeVisible();
+  });
+
   it("offers a link to the finished stage", async () => {
     saveState(
       seededState({
