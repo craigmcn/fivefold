@@ -12,6 +12,7 @@ import { SharedStageDialog } from "./components/SharedStageDialog";
 import { StageHeading } from "./components/StageHeading";
 import { StageSummary } from "./components/StageSummary";
 import { StageTrack } from "./components/StageTrack";
+import { StaleDailyNotice } from "./components/StaleDailyNotice";
 import { StatsPanel } from "./components/StatsPanel";
 import { StatusLine } from "./components/StatusLine";
 import { announcement } from "./lib/announce";
@@ -37,6 +38,7 @@ import {
   type SavedState,
 } from "./lib/storage";
 import { useGameKeys } from "./lib/useGameKeys";
+import { useResume } from "./lib/useResume";
 import { useSavedSync } from "./lib/useSavedSync";
 
 type Panel = "help" | "stats" | null;
@@ -54,6 +56,9 @@ function App() {
   );
   const [pendingShare, setPendingShare] = useState(session.pendingShare);
   const [panel, setPanel] = useState<Panel>(null);
+  // Re-read when the app comes back into view or switches to daily, so an
+  // earlier day's daily can be spotted.
+  const [today, setToday] = useState(dayNumber);
   const { saved, input, message, rejections, unlocked } = state;
   const daily = saved.mode === "daily";
   // Read inline rather than via activeStage(): the React Compiler only treats
@@ -63,6 +68,10 @@ function App() {
   const wordDone = isWordDone(stage);
   const stageDone = isStageDone(stage);
   const stageLabel = daily ? `Daily #${stage.number}` : `Stage ${stage.number}`;
+  const staleDaily = daily && stage.number !== today;
+  // The day whose stale notice was dismissed; in memory only, so it returns
+  // on the next launch as a reminder.
+  const [dismissedDay, setDismissedDay] = useState<number | null>(null);
 
   useEffect(() => saveState(saved), [saved]);
   useEffect(clearSharedLink, []);
@@ -82,11 +91,22 @@ function App() {
   function switchMode(mode: Mode) {
     if (mode === "daily") {
       const day = dayNumber();
+      setToday(day);
       dispatch({ type: "startDaily", day, words: dailyWords(day) });
     } else {
       dispatch({ type: "setMode", mode });
     }
   }
+
+  // A new day while away: startDaily moves an untouched or finished daily on
+  // to today's and keeps one that's under way.
+  useResume(
+    useCallback(() => {
+      const day = dayNumber();
+      setToday(day);
+      if (daily) dispatch({ type: "startDaily", day, words: dailyWords(day) });
+    }, [daily]),
+  );
 
   const dismissUnlocked = useCallback(
     () => dispatch({ type: "dismissUnlocked" }),
@@ -102,12 +122,14 @@ function App() {
     if (!wordDone) return;
     if (!stageDone) {
       dispatch({ type: "nextWord" });
+    } else if (staleDaily) {
+      dispatch({ type: "startDaily", day: today, words: dailyWords(today) });
     } else if (daily) {
       dispatch({ type: "setMode", mode: "endless" });
     } else {
       dispatch({ type: "newStage", ...pickStage(saved.served) });
     }
-  }, [wordDone, stageDone, daily, saved.served]);
+  }, [wordDone, stageDone, staleDaily, today, daily, saved.served]);
 
   const submit = useCallback(() => {
     if (wordDone) advance();
@@ -172,6 +194,13 @@ function App() {
           results={stage.results}
           total={STAGE_LENGTH}
         />
+        {staleDaily && !stageDone && dismissedDay !== stage.number && (
+          <StaleDailyNotice
+            day={stage.number}
+            today={today}
+            onDismiss={() => setDismissedDay(stage.number)}
+          />
+        )}
 
         {stageDone && wordDone ? (
           <StageSummary
@@ -199,9 +228,11 @@ function App() {
           nextLabel={
             !stageDone
               ? "Next word"
-              : daily
-                ? "Back to endless"
-                : `Start stage ${stage.number + 1}`
+              : staleDaily
+                ? "Play today's daily"
+                : daily
+                  ? "Back to endless"
+                  : `Start stage ${stage.number + 1}`
           }
           onNext={advance}
           onGiveUp={() => dispatch({ type: "giveUp" })}

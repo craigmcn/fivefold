@@ -702,6 +702,81 @@ describe("App in daily mode", () => {
     expect(screen.getByText(/Daily #4 · Word 1 of 10/)).toBeVisible();
   });
 
+  // Yesterday's daily, one guess into its last word.
+  const underWay = () => {
+    const stage = finished(3, dailyWords(3));
+    return {
+      ...stage,
+      guesses: ["crane"],
+      results: stage.results.slice(0, 9),
+    };
+  };
+
+  it("keeps yesterday's daily under way when reopened, and says so", async () => {
+    saveState(
+      seededState({
+        mode: "daily",
+        daily: { ...emptyDaily(), stage: underWay() },
+      }),
+    );
+    setToday(4);
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getByText(/Daily #3 · Word 10 of 10/)).toBeVisible();
+    expect(
+      screen.getByText(
+        "You're finishing yesterday's daily (#3). Today's (#4) starts when you're done.",
+      ),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Dismiss notice" }));
+    expect(screen.queryByText(/You're finishing/)).not.toBeInTheDocument();
+    // Dismissing leaves focus alone, so the keyboard still plays.
+    await user.keyboard(`${dailyWords(3)[9]}{Enter}`);
+    await user.click(
+      screen.getByRole("button", { name: "Play today's daily" }),
+    );
+    expect(screen.getByText(/Daily #4 · Word 1 of 10/)).toBeVisible();
+    expect(stored().daily.lastCompleted).toBe(3);
+  });
+
+  it("rolls over on resume: an untouched daily moves on, one under way stays", () => {
+    const resume = () =>
+      act(() => {
+        Object.defineProperty(document, "visibilityState", {
+          value: "visible",
+          configurable: true,
+        });
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+    saveState(
+      seededState({
+        mode: "daily",
+        daily: { ...emptyDaily(), stage: { ...underWay(), number: 4 } },
+      }),
+    );
+    setToday(4);
+    const { unmount } = render(<App />);
+    setToday(5);
+    resume();
+    expect(screen.getByText(/Daily #4 · Word 10 of 10/)).toBeVisible();
+    expect(
+      screen.getByText(/finishing yesterday's daily \(#4\)/),
+    ).toBeVisible();
+    unmount();
+
+    window.localStorage.clear();
+    setToday(5);
+    saveState(seededState({ mode: "daily" }));
+    render(<App />);
+    expect(screen.getByText(/Daily #5 · Word 1 of 10/)).toBeVisible();
+    setToday(6);
+    resume();
+    expect(screen.getByText(/Daily #6 · Word 1 of 10/)).toBeVisible();
+    expect(screen.queryByText(/You're finishing/)).not.toBeInTheDocument();
+  });
+
   it("finishes a daily without a share link and heads back to endless", async () => {
     saveState(
       seededState({

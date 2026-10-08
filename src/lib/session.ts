@@ -49,7 +49,8 @@ export function startSession(
     rejections: 0,
     unlocked: [],
   };
-  // Reopening on a later day moves daily play on to that day's stage.
+  // Reopening on a later day moves daily play on to that day's stage, unless
+  // the earlier one is under way (startDaily keeps it to be finished).
   if (next.mode === "daily" && next.daily.stage?.number !== today) {
     state = {
       ...gameReducer(state, {

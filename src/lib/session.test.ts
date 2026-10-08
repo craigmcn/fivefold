@@ -133,6 +133,21 @@ describe("startSession", () => {
     expect(state.message).toBe("That stage link isn't valid");
   });
 
+  it("keeps an earlier day's daily that's under way", () => {
+    const yesterday = {
+      ...seededState().stage!,
+      number: TODAY - 1,
+      guesses: ["crane"],
+    };
+    const saved = seededState({
+      mode: "daily",
+      daily: { ...emptyDaily(), stage: yesterday },
+    });
+    const { state } = startSession(saved, null, TODAY);
+    expect(state.saved.mode).toBe("daily");
+    expect(state.saved.daily.stage).toBe(yesterday);
+  });
+
   it("keeps today's daily stage", () => {
     const today = { ...seededState().stage!, number: TODAY };
     const saved = seededState({
