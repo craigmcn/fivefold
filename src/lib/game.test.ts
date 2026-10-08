@@ -206,6 +206,31 @@ describe("daily mode", () => {
     expect(state.input).toBe("d");
   });
 
+  it("keeps an earlier day's daily that's under way", () => {
+    // A wrong guess, or a hint, is enough to count as under way.
+    const guessed = typeWord(startDaily(start()), DAILY[1]);
+    const hinted = gameReducer(startDaily(start()), { type: "revealLetter" });
+    for (const before of [guessed, hinted]) {
+      const left = gameReducer(before, { type: "setMode", mode: "endless" });
+      const state = startDaily(left, 8);
+      expect(state.saved.mode).toBe("daily");
+      expect(state.saved.daily.stage).toBe(before.saved.daily.stage);
+    }
+  });
+
+  it("replaces an earlier day's daily that's untouched or finished", () => {
+    let state = startDaily(start());
+    expect(startDaily(state, 8).saved.daily.stage!.number).toBe(8);
+
+    DAILY.forEach((word, i) => {
+      state = typeWord(state, word);
+      if (i < DAILY.length - 1)
+        state = gameReducer(state, { type: "nextWord" });
+    });
+    state = startDaily(state, 8);
+    expect(state.saved.daily.stage).toMatchObject({ number: 8, results: [] });
+  });
+
   it("returns to endless mode when a new endless stage starts", () => {
     let state = startDaily(start());
     state = gameReducer(state, { type: "newStage", words: WORDS, served: [] });

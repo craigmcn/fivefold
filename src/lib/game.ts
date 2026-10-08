@@ -92,6 +92,13 @@ const freshStage = (
 export const hintCount = (stage: StageProgress): number =>
   stage.revealed.length + stage.eliminations;
 
+// No guesses, results or hints yet, so replacing or re-locking it loses
+// nothing the player did.
+export const isUntouched = (stage: StageProgress): boolean =>
+  stage.results.length === 0 &&
+  stage.guesses.length === 0 &&
+  hintCount(stage) === 0;
+
 // Points-table steps the current word's hints have spent.
 export const hintSteps = (stage: StageProgress): number =>
   stage.revealed.length * HINT_STEPS.reveal +
@@ -186,13 +193,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "setHardMode": {
       // Untouched stages switch now; anything in progress keeps its setting
       // until it ends, so hard mode can't be dodged for one tricky word.
-      const untouched = (s: StageProgress | null) =>
-        s !== null &&
-        s.results.length === 0 &&
-        s.guesses.length === 0 &&
-        hintCount(s) === 0;
       const relock = (s: StageProgress | null) =>
-        untouched(s) ? { ...s!, hard: action.on } : s;
+        s && isUntouched(s) ? { ...s, hard: action.on } : s;
       return {
         ...state,
         saved: {
@@ -211,9 +213,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "setMode":
       if (state.saved.mode === action.mode) return state;
       return { ...cleared, saved: { ...state.saved, mode: action.mode } };
-    case "startDaily":
-      // Re-starting the same day would wipe a finished attempt.
-      if (state.saved.daily.stage?.number === action.day) {
+    case "startDaily": {
+      // Re-starting the same day would wipe a finished attempt, and an earlier
+      // day's daily that's under way is kept so it can be finished (App says
+      // so). An untouched or finished one makes way for today's.
+      const current = state.saved.daily.stage;
+      if (
+        current &&
+        (current.number === action.day ||
+          (!isStageDone(current) && !isUntouched(current)))
+      ) {
         return gameReducer(state, { type: "setMode", mode: "daily" });
       }
       return {
@@ -227,6 +236,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           },
         },
       };
+    }
   }
 
   const stage = activeStage(state.saved);

@@ -122,9 +122,14 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   `dailyWords(day)` runs `pickStage([], mulberry32(seed))`, ignoring
   `served`, so everyone gets the same words. The stage's `number` is the day
   number. Endless and daily each keep their own stage and `Stats`; both feed
-  `served`. Opening the app in daily mode on a later day starts that day's
-  stage; a finished daily shows its summary (no share link, which would
-  spoil a friend's daily) until then. Streak = consecutive days with a
+  `served`. On a later day, `startDaily` (run at start-up, on switching to
+  daily, and by `useResume` when the page becomes visible again, since an
+  installed PWA can sit in memory overnight) replaces an untouched or
+  finished daily with today's, but keeps one that's under way (any guess,
+  result or hint, `isUntouched`) so it can be finished. App then shows
+  `StaleDailyNotice`, and the finished stage's button is "Play today's
+  daily". A finished daily shows its summary (no share link, which would
+  spoil a friend's daily) until the day changes. Streak = consecutive days with a
   completed daily (`recordDailyStreak`); `currentStreak` reads it as 0 once
   a day is missed. Shared links always switch to endless.
 - **Game state:** `src/lib/game.ts` is a pure reducer (letter / backspace /
