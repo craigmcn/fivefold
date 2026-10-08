@@ -69,6 +69,9 @@ function App() {
   const stageDone = isStageDone(stage);
   const stageLabel = daily ? `Daily #${stage.number}` : `Stage ${stage.number}`;
   const staleDaily = daily && stage.number !== today;
+  // The day whose stale notice was dismissed; in memory only, so it returns
+  // on the next launch as a reminder.
+  const [dismissedDay, setDismissedDay] = useState<number | null>(null);
 
   useEffect(() => saveState(saved), [saved]);
   useEffect(clearSharedLink, []);
@@ -191,8 +194,12 @@ function App() {
           results={stage.results}
           total={STAGE_LENGTH}
         />
-        {staleDaily && !stageDone && (
-          <StaleDailyNotice day={stage.number} today={today} />
+        {staleDaily && !stageDone && dismissedDay !== stage.number && (
+          <StaleDailyNotice
+            day={stage.number}
+            today={today}
+            onDismiss={() => setDismissedDay(stage.number)}
+          />
         )}
 
         {stageDone && wordDone ? (

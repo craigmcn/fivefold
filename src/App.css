@@ -321,12 +321,25 @@ main {
 
 /* Compact: on short phones the board already has little room. */
 .notice {
-  margin: 0.4rem 0 0;
-  padding: 0.25rem 0.6rem;
+  /* Tucks into the stage track's bottom margin, so it costs less board. */
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: -0.5rem 0 0;
+  padding: 0.25rem 0.3rem 0.25rem 0.6rem;
   border-left: 3px solid var(--accent);
   background: var(--surface);
   font-size: 0.85rem;
   line-height: 1.3;
+}
+
+.notice p {
+  flex: 1;
+  margin: 0;
+}
+
+.notice .icon-button {
+  font-size: 1.25rem;
 }
 
 .message {

@@ -730,8 +730,10 @@ describe("App in daily mode", () => {
       ),
     ).toBeVisible();
 
-    await user.keyboard(`${dailyWords(3)[9]}{Enter}`);
+    await user.click(screen.getByRole("button", { name: "Dismiss notice" }));
     expect(screen.queryByText(/You're finishing/)).not.toBeInTheDocument();
+    // Dismissing leaves focus alone, so the keyboard still plays.
+    await user.keyboard(`${dailyWords(3)[9]}{Enter}`);
     await user.click(
       screen.getByRole("button", { name: "Play today's daily" }),
     );
