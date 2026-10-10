@@ -1,4 +1,4 @@
-import { describeGuess } from "../components/Board";
+import { describeGuess } from "./evaluate";
 import type { WordResult } from "./scoring";
 
 interface AnnounceInput {

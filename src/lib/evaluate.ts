@@ -48,3 +48,16 @@ export function keyboardStatuses(
   }
   return statuses;
 }
+
+const STATUS_LABEL: Record<LetterStatus, string> = {
+  correct: "correct",
+  present: "in the word, wrong spot",
+  absent: "not in the word",
+};
+
+// Spoken form of a scored guess, for the board's labels and the live region.
+export function describeGuess(guess: string, answer: string): string {
+  return evaluateGuess(guess, answer)
+    .map((status, i) => `${guess[i].toUpperCase()} ${STATUS_LABEL[status]}`)
+    .join(", ");
+}

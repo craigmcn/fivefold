@@ -161,7 +161,8 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   writes identical to what's stored, so a synced tab doesn't write it back.
 - **Evaluation:** `src/lib/evaluate.ts`: two-pass Wordle scoring so
   duplicate letters are handled correctly; `keyboardStatuses` keeps each
-  letter's best status for the on-screen keyboard.
+  letter's best status for the on-screen keyboard; `describeGuess` is the
+  spoken form the board and live region share.
 - **UI:** `src/App.tsx` owns the reducer and composes presentational
   components from `src/components/` (`ModeBar`, `StageHeading`,
   `StatusLine`, `HintBar`, `SharedStageDialog`, …), each with its own test;
