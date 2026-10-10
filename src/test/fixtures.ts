@@ -1,4 +1,8 @@
-import { emptyState, type SavedState } from "../lib/storage";
+import {
+  emptyState,
+  type SavedState,
+  type StageProgress,
+} from "../lib/storage";
 
 export const STAGE_WORDS = [
   "stand",
@@ -13,7 +17,9 @@ export const STAGE_WORDS = [
   "dross",
 ];
 
-export function seededState(overrides: Partial<SavedState> = {}): SavedState {
+export function seededState(
+  overrides: Partial<SavedState> & { stage?: StageProgress } = {},
+): SavedState & { stage: StageProgress } {
   return {
     ...emptyState(),
     stage: {

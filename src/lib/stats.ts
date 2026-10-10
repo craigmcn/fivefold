@@ -26,7 +26,11 @@ export function recordWord(stats: Stats, result: WordResult): Stats {
 
 // Streaks run on day numbers: completing the day after the last one extends
 // it, any gap restarts it, and replaying a completed day changes nothing.
-export function recordDailyStreak(daily: DailyState, day: number): DailyState {
+// Generic so a daily known to hold a stage still does afterwards.
+export function recordDailyStreak<D extends DailyState>(
+  daily: D,
+  day: number,
+): D {
   if (daily.lastCompleted !== null && day <= daily.lastCompleted) return daily;
   const streak = daily.lastCompleted === day - 1 ? daily.streak + 1 : 1;
   return {

@@ -7,6 +7,7 @@ import {
   type GameAction,
   type GameState,
 } from "./game";
+import { seededState } from "../test/fixtures";
 import { emptyState } from "./storage";
 
 const WORDS = [
@@ -25,7 +26,7 @@ const WORDS = [
 const start = (): GameState =>
   gameReducer(
     {
-      saved: emptyState(),
+      saved: { ...seededState(), mode: "endless" },
       input: "",
       message: null,
       rejections: 0,
@@ -387,6 +388,14 @@ describe("hard mode", () => {
 });
 
 describe("another tab's save", () => {
+  it("only takes a playable save", () => {
+    // tsc -b checks this: a raw save may have no stage, so it has to go
+    // through startSession first.
+    // @ts-expect-error SavedState isn't a PlayableSave
+    const action: GameAction = { type: "replaceSaved", saved: emptyState() };
+    expect(action.type).toBe("replaceSaved");
+  });
+
   it("keeps half-typed input when the current word is unchanged", () => {
     let state = gameReducer(start(), { type: "letter", letter: "c" });
     const saved = { ...state.saved, hardMode: true };

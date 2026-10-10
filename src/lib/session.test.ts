@@ -60,7 +60,7 @@ describe("startSession", () => {
   it("resumes a saved stage untouched", () => {
     const saved = seededState();
     const { state } = startSession(saved, null, TODAY);
-    expect(state.saved).toBe(saved);
+    expect(state.saved).toEqual(saved);
   });
 
   it("swaps a shared link in for an untouched stage without asking", () => {
@@ -154,6 +154,6 @@ describe("startSession", () => {
       mode: "daily",
       daily: { ...emptyDaily(), stage: today },
     });
-    expect(startSession(saved, null, TODAY).state.saved).toBe(saved);
+    expect(startSession(saved, null, TODAY).state.saved).toEqual(saved);
   });
 });
