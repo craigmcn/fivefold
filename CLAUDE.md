@@ -206,7 +206,10 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   `page.clock.setFixedTime` and reads the day's words from localStorage.
 - `*.pwa.spec.ts` run in a separate `pwa` Playwright project against
   `vite preview` of a production build on port 3171 (the SW doesn't exist in
-  dev). Wait for `navigator.serviceWorker.controller` before going offline:
+  dev). Preview sends `netlify.toml`'s headers (`preview.headers`, parsed
+  from the file in `vite.config.ts`), so they run under the production CSP,
+  and the offline spec fails on any violation (`watchCsp` in `e2e/csp.ts`).
+  The dev server doesn't get the CSP: Vite's HMR client is inline. Wait for `navigator.serviceWorker.controller` before going offline:
   a first load is never served by its own installing worker.
 - Deployed to Netlify at https://endearing-blancmange-0cb3b7.netlify.app/
   (`yarn build:netlify`, publish dir `netlify`). No GitHub Pages yet.
