@@ -177,6 +177,14 @@ describe("daily mode", () => {
     expect(activeStage(state.saved)!.guesses).toEqual(["crane"]);
   });
 
+  it("stays put when switched to daily with no daily stage", () => {
+    // Only startDaily picks a daily stage; setMode can't leave a null one.
+    const before = start();
+    expect(gameReducer(before, { type: "setMode", mode: "daily" })).toBe(
+      before,
+    );
+  });
+
   it("doesn't restart a day that's already been started", () => {
     let state = typeWord(startDaily(start()), "dross");
     state = gameReducer(state, { type: "setMode", mode: "endless" });
