@@ -86,6 +86,14 @@ export default defineConfig({
         "src/vite-env.d.ts",
       ],
       reporter: ["text", "html"],
+      // A little under the 2026-10-10 figures (95.6/94.5/93.5/96.7), so CI
+      // fails on a real drop but not on small refactors. Raise as it grows.
+      thresholds: {
+        statements: 94,
+        branches: 92,
+        functions: 91,
+        lines: 95,
+      },
     },
   },
 });

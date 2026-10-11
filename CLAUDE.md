@@ -10,7 +10,7 @@ yarn dev             # dev server (http://localhost:3170)
 yarn build           # tsc -b + production build → dist/
 yarn build:netlify   # dual build: netlify/ (root) + netlify/fivefold/ (GH Pages)
 yarn test            # vitest watch mode
-yarn test:coverage   # vitest run --coverage
+yarn test:coverage   # vitest run --coverage (CI; fails below vite.config.ts thresholds)
 yarn test:e2e        # Playwright headless E2E
 yarn lint            # ESLint (src, e2e, scripts)
 yarn format:check    # Prettier check
