@@ -24,6 +24,7 @@ import {
   isStageDone,
   isWordDone,
   type GameState,
+  type PlayableSave,
 } from "./lib/game";
 import { nextEliminations, nextReveal, withHints } from "./lib/hints";
 import { HINT_STEPS, pointsFor, STAGE_LENGTH, stageScore } from "./lib/scoring";
@@ -31,12 +32,7 @@ import { startSession, type Session } from "./lib/session";
 import { clearSharedLink, readSharedLink, type SharedLink } from "./lib/share";
 import { pickStage } from "./lib/stage";
 import { currentStreak } from "./lib/stats";
-import {
-  loadState,
-  saveState,
-  type Mode,
-  type SavedState,
-} from "./lib/storage";
+import { loadState, saveState, type Mode } from "./lib/storage";
 import { useGameKeys } from "./lib/useGameKeys";
 import { useResume } from "./lib/useResume";
 import { useSavedSync } from "./lib/useSavedSync";
@@ -63,7 +59,7 @@ function App() {
   const daily = saved.mode === "daily";
   // Read inline rather than via activeStage(): the React Compiler only treats
   // direct reads of reducer state as frozen, which the callbacks below rely on.
-  const stage = (daily ? saved.daily.stage : saved.stage)!;
+  const stage = daily ? saved.daily.stage : saved.stage;
   const answer = stage.words[stage.cursor];
   const wordDone = isWordDone(stage);
   const stageDone = isStageDone(stage);
@@ -77,7 +73,7 @@ function App() {
   useEffect(clearSharedLink, []);
   useSavedSync(
     useCallback(
-      (next: SavedState) => dispatch({ type: "replaceSaved", saved: next }),
+      (next: PlayableSave) => dispatch({ type: "replaceSaved", saved: next }),
       [],
     ),
   );
@@ -306,7 +302,7 @@ function App() {
       </Modal>
       <SharedStageDialog
         open={pendingShare !== null}
-        stageNumber={saved.stage!.number}
+        stageNumber={saved.stage.number}
         onAccept={acceptShare}
         onKeep={() => setPendingShare(null)}
       />

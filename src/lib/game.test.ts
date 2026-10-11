@@ -7,6 +7,7 @@ import {
   type GameAction,
   type GameState,
 } from "./game";
+import { seededState } from "../test/fixtures";
 import { emptyState } from "./storage";
 
 const WORDS = [
@@ -25,7 +26,7 @@ const WORDS = [
 const start = (): GameState =>
   gameReducer(
     {
-      saved: emptyState(),
+      saved: { ...seededState(), mode: "endless" },
       input: "",
       message: null,
       rejections: 0,
@@ -174,6 +175,14 @@ describe("daily mode", () => {
 
     state = gameReducer(state, { type: "setMode", mode: "endless" });
     expect(activeStage(state.saved)!.guesses).toEqual(["crane"]);
+  });
+
+  it("stays put when switched to daily with no daily stage", () => {
+    // Only startDaily picks a daily stage; setMode can't leave a null one.
+    const before = start();
+    expect(gameReducer(before, { type: "setMode", mode: "daily" })).toBe(
+      before,
+    );
   });
 
   it("doesn't restart a day that's already been started", () => {
@@ -387,6 +396,14 @@ describe("hard mode", () => {
 });
 
 describe("another tab's save", () => {
+  it("only takes a playable save", () => {
+    // tsc -b checks this: a raw save may have no stage, so it has to go
+    // through startSession first.
+    // @ts-expect-error SavedState isn't a PlayableSave
+    const action: GameAction = { type: "replaceSaved", saved: emptyState() };
+    expect(action.type).toBe("replaceSaved");
+  });
+
   it("keeps half-typed input when the current word is unchanged", () => {
     let state = gameReducer(start(), { type: "letter", letter: "c" });
     const saved = { ...state.saved, hardMode: true };
