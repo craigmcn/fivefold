@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateGuess, keyboardStatuses } from "./evaluate";
+import { describeGuess, evaluateGuess, keyboardStatuses } from "./evaluate";
 
 describe("evaluateGuess", () => {
   it("marks exact, misplaced and missing letters", () => {
@@ -45,5 +45,13 @@ describe("keyboardStatuses", () => {
     expect(statuses.get("c")).toBe("correct");
     expect(statuses.get("a")).toBe("correct");
     expect(statuses.get("n")).toBe("absent");
+  });
+});
+
+describe("describeGuess", () => {
+  it("names each letter and its status", () => {
+    expect(describeGuess("crane", "caper")).toBe(
+      "C correct, R in the word, wrong spot, A in the word, wrong spot, N not in the word, E in the word, wrong spot",
+    );
   });
 });
