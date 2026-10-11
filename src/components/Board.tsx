@@ -1,5 +1,5 @@
 import { useEffect, useRef, type CSSProperties } from "react";
-import { evaluateGuess } from "../lib/evaluate";
+import { describeGuess, evaluateGuess } from "../lib/evaluate";
 import { SCORED_GUESSES } from "../lib/scoring";
 import type { LetterStatus } from "../types";
 
@@ -11,18 +11,6 @@ interface BoardProps {
   rejections: number;
   // Positions given away by the reveal-a-letter hint.
   revealed: readonly number[];
-}
-
-const STATUS_LABEL: Record<LetterStatus, string> = {
-  correct: "correct",
-  present: "in the word, wrong spot",
-  absent: "not in the word",
-};
-
-export function describeGuess(guess: string, answer: string): string {
-  return evaluateGuess(guess, answer)
-    .map((status, i) => `${guess[i].toUpperCase()} ${STATUS_LABEL[status]}`)
-    .join(", ");
 }
 
 function Tiles({

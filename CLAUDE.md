@@ -164,7 +164,8 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   writes identical to what's stored, so a synced tab doesn't write it back.
 - **Evaluation:** `src/lib/evaluate.ts`: two-pass Wordle scoring so
   duplicate letters are handled correctly; `keyboardStatuses` keeps each
-  letter's best status for the on-screen keyboard.
+  letter's best status for the on-screen keyboard; `describeGuess` is the
+  spoken form the board and live region share.
 - **UI:** `src/App.tsx` owns the reducer and composes presentational
   components from `src/components/` (`ModeBar`, `StageHeading`,
   `StatusLine`, `HintBar`, `SharedStageDialog`, …), each with its own test;
@@ -211,8 +212,12 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   `vite preview` of a production build on port 3171 (the SW doesn't exist in
   dev). Wait for `navigator.serviceWorker.controller` before going offline:
   a first load is never served by its own installing worker.
-- Deployed to Netlify at https://endearing-blancmange-0cb3b7.netlify.app/
-  (`yarn build:netlify`, publish dir `netlify`). No GitHub Pages yet.
+- Played at https://www.craigmcn.com/fivefold/: a status-200 proxy (in the
+  `craigmcnaughton` repo's `netlify.toml`) to the Netlify site's
+  `/fivefold/` build, https://endearing-blancmange-0cb3b7.netlify.app/
+  (`yarn build:netlify`, publish dir `netlify`). The proxy passes
+  fivefold's own headers through, and the page is same-origin with what it
+  loads, so the CSP's `'self'` holds at either address. No GitHub Pages yet.
   `netlify.toml` sets the build and strict security headers: a CSP of
   `'self'` only (nothing loads cross-origin; React's `style` props go
   through CSSOM, so no `'unsafe-inline'`), plus the inline trailing-slash
