@@ -29,29 +29,30 @@ export function startSession(
   today: number,
 ): Session {
   const words = shared && "words" in shared ? shared.words : null;
-  let next = saved;
   // Opening your own link (e.g. a bookmarked one) shouldn't replay a stage.
   const alreadyPlaying =
     words && saved.stage && sameWords(words, saved.stage.words);
-  if (words && !alreadyPlaying && isReplaceable(saved.stage)) {
-    next = newStage(saved, { words, served: saved.served });
-  } else if (!saved.stage) {
-    next = newStage(saved, pickStage(saved.served));
-  }
-  // A shared link is always an endless stage, so show it (or the confirm).
-  if (words) next = { ...next, mode: "endless" };
+  const replaceWith =
+    words && !alreadyPlaying && isReplaceable(saved.stage) ? words : null;
+  const withStage = replaceWith
+    ? newStage(saved, { words: replaceWith, served: saved.served })
+    : hasStage(saved)
+      ? saved
+      : newStage(saved, pickStage(saved.served));
 
   let state: GameState = {
-    saved: next,
+    // Endless first: daily gets its stage from startDaily below.
+    saved: { ...withStage, mode: "endless" },
     input: "",
     message:
       shared && "invalid" in shared ? "That stage link isn't valid" : null,
     rejections: 0,
     unlocked: [],
   };
-  // Reopening on a later day moves daily play on to that day's stage, unless
-  // the earlier one is under way (startDaily keeps it to be finished).
-  if (next.mode === "daily" && next.daily.stage?.number !== today) {
+  // A shared link is always an endless stage, so show it (or the confirm).
+  // Otherwise daily resumes, on today's stage unless an earlier day's is
+  // under way (startDaily keeps that one to be finished).
+  if (!words && withStage.mode === "daily") {
     state = {
       ...gameReducer(state, {
         type: "startDaily",
@@ -63,6 +64,10 @@ export function startSession(
   }
 
   const pendingShare =
-    words && !sameWords(words, state.saved.stage!.words) ? words : null;
+    words && !sameWords(words, state.saved.stage.words) ? words : null;
   return { state, pendingShare };
 }
+
+const hasStage = (
+  saved: SavedState,
+): saved is SavedState & { stage: StageProgress } => saved.stage !== null;

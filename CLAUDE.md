@@ -134,7 +134,10 @@ yarn definitions:fetch  # refresh Wiktionary gap-fills (network; after answers c
   a day is missed. Shared links always switch to endless.
 - **Game state:** `src/lib/game.ts` is a pure reducer (letter / backspace /
   submit / giveUp / nextWord / newStage). Actions act on the active mode's stage
-  (`activeStage`); `setMode`/`startDaily` switch modes. App reads the active
+  (`activeStage`); `setMode`/`startDaily` switch modes. `GameState.saved` is a
+  `PlayableSave`: an endless stage always, and a daily one whenever daily is
+  the mode. `startSession` builds one from a raw `SavedState` (so does
+  `useSavedSync`, through it), and `replaceSaved` accepts nothing else. App reads the active
   stage inline, not via `activeStage()`, because the React Compiler lint only
   treats direct reads of reducer state as frozen. `StageProgress.cursor` stays on a
   finished word until "next word" so its board remains visible; a word is
