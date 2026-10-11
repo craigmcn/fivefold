@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { dayNumber } from "./daily";
+import type { PlayableSave } from "./game";
 import { startSession } from "./session";
-import { loadState, STORAGE_KEY, type SavedState } from "./storage";
+import { loadState, STORAGE_KEY } from "./storage";
 
 // Keeps this tab in step with saves from other tabs (or the installed PWA
 // beside a browser tab). The storage event only fires in the other tabs.
-export function useSavedSync(onChange: (saved: SavedState) => void) {
+export function useSavedSync(onChange: (saved: PlayableSave) => void) {
   useEffect(() => {
     function onStorage(e: StorageEvent) {
       if (e.storageArea !== window.localStorage) return;

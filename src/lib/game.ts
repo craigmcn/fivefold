@@ -15,8 +15,14 @@ import type { PickedStage } from "./stage";
 import { recordDailyStreak, recordStage, recordWord } from "./stats";
 import type { Mode, SavedState, StageProgress } from "./storage";
 
+// A save that's ready to play: an endless stage always, and a daily one
+// whenever daily is the mode. startSession makes one; the reducer keeps it so.
+export type PlayableSave = SavedState & { stage: StageProgress } & (
+    { mode: "endless" } | { mode: "daily"; daily: { stage: StageProgress } }
+  );
+
 export interface GameState {
-  saved: SavedState;
+  saved: PlayableSave;
   input: string;
   message: string | null;
   // Bumped on each rejected guess so the UI can replay the shake animation.
@@ -38,7 +44,7 @@ export type GameAction =
   | { type: "newStage"; words: string[]; served: string[] }
   | { type: "setMode"; mode: Mode }
   | { type: "startDaily"; day: number; words: string[] }
-  | { type: "replaceSaved"; saved: SavedState };
+  | { type: "replaceSaved"; saved: PlayableSave };
 
 export const isWordDone = (stage: StageProgress): boolean =>
   stage.results.length > stage.cursor;
@@ -46,10 +52,10 @@ export const isWordDone = (stage: StageProgress): boolean =>
 export const isStageDone = (stage: StageProgress): boolean =>
   stage.results.length === STAGE_LENGTH;
 
-export function newStage(
-  saved: SavedState,
+export function newStage<S extends SavedState>(
+  saved: S,
   { words, served }: PickedStage,
-): SavedState {
+): S & { stage: StageProgress } {
   // A shared stage can replace an unfinished one; it takes over that number
   // rather than leaving a gap.
   const number =
@@ -63,10 +69,13 @@ export function newStage(
   };
 }
 
-export const activeStage = (saved: SavedState): StageProgress | null =>
+export const activeStage = (saved: PlayableSave): StageProgress =>
   saved.mode === "daily" ? saved.daily.stage : saved.stage;
 
-function withActiveStage(saved: SavedState, stage: StageProgress): SavedState {
+function withActiveStage(
+  saved: PlayableSave,
+  stage: StageProgress,
+): PlayableSave {
   return saved.mode === "daily"
     ? { ...saved, daily: { ...saved.daily, stage } }
     : { ...saved, stage };
@@ -123,11 +132,10 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
     hints: hintCount(stage),
   };
   const results = [...stage.results, result];
-  const daily = state.saved.mode === "daily";
   // Endless and daily keep separate stats; both feed served, since a word seen
   // in either mode is one endless play should avoid repeating.
   let stats = recordWord(
-    daily ? state.saved.daily.stats : state.saved.stats,
+    state.saved.mode === "daily" ? state.saved.daily.stats : state.saved.stats,
     result,
   );
   const stageDone = results.length === STAGE_LENGTH;
@@ -136,22 +144,20 @@ function finishWord(state: GameState, stage: StageProgress, gaveUp: boolean) {
     const bonus = clean ? cleanBonus(stage.hard) : 0;
     stats = recordStage(stats, stageScore(results, stage.hard), clean, bonus);
   }
-  let saved: SavedState = {
-    ...state.saved,
-    served: state.saved.served.includes(result.answer)
-      ? state.saved.served
-      : [...state.saved.served, result.answer],
-  };
-  if (daily) {
+  let saved = withActiveStage(state.saved, { ...stage, results });
+  const served = saved.served.includes(result.answer)
+    ? saved.served
+    : [...saved.served, result.answer];
+  if (saved.mode === "daily") {
     const next = { ...saved.daily, stats };
     saved = {
       ...saved,
+      served,
       daily: stageDone ? recordDailyStreak(next, stage.number) : next,
     };
   } else {
-    saved = { ...saved, stats };
+    saved = { ...saved, served, stats };
   }
-  saved = withActiveStage(saved, { ...stage, results });
   const earned = newlyEarned({
     saved,
     result,
@@ -193,26 +199,47 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "setHardMode": {
       // Untouched stages switch now; anything in progress keeps its setting
       // until it ends, so hard mode can't be dodged for one tricky word.
-      const relock = (s: StageProgress | null) =>
+      const relock = <S extends StageProgress | null>(s: S): S =>
         s && isUntouched(s) ? { ...s, hard: action.on } : s;
+      const { saved } = state;
+      const next = {
+        ...saved,
+        hardMode: action.on,
+        stage: relock(saved.stage),
+      };
+      // Split by mode so the type still knows a playing daily has a stage.
       return {
         ...state,
-        saved: {
-          ...state.saved,
-          hardMode: action.on,
-          stage: relock(state.saved.stage),
-          daily: {
-            ...state.saved.daily,
-            stage: relock(state.saved.daily.stage),
-          },
-        },
+        saved:
+          saved.mode === "daily"
+            ? {
+                ...next,
+                mode: "daily",
+                daily: { ...saved.daily, stage: relock(saved.daily.stage) },
+              }
+            : {
+                ...next,
+                mode: "endless",
+                daily: { ...saved.daily, stage: relock(saved.daily.stage) },
+              },
       };
     }
     case "dismissUnlocked":
       return state.unlocked.length === 0 ? state : { ...state, unlocked: [] };
-    case "setMode":
-      if (state.saved.mode === action.mode) return state;
-      return { ...cleared, saved: { ...state.saved, mode: action.mode } };
+    case "setMode": {
+      const { saved } = state;
+      if (saved.mode === action.mode) return state;
+      if (action.mode === "endless") {
+        return { ...cleared, saved: { ...saved, mode: "endless" } };
+      }
+      // Only startDaily picks a daily stage, so this just returns to one.
+      const stage = saved.daily.stage;
+      if (!stage) return state;
+      return {
+        ...cleared,
+        saved: { ...saved, mode: "daily", daily: { ...saved.daily, stage } },
+      };
+    }
     case "startDaily": {
       // Re-starting the same day would wipe a finished attempt, and an earlier
       // day's daily that's under way is kept so it can be finished (App says
@@ -240,7 +267,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   }
 
   const stage = activeStage(state.saved);
-  if (!stage) return state;
 
   const done = isWordDone(stage);
 
