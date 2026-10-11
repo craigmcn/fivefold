@@ -1,12 +1,15 @@
 import { expect, test } from "@playwright/test";
+import { watchCsp } from "./csp.ts";
 import { seed } from "./seed.ts";
 
 // Runs against `vite preview` of a production build: the service worker is
-// only generated at build time, so the dev server can't exercise it.
+// only generated at build time, so the dev server can't exercise it. Preview
+// sends netlify.toml's headers, so this also plays under the production CSP.
 test("reloads and plays offline once the service worker is in control", async ({
   page,
   context,
 }) => {
+  const violations = await watchCsp(page);
   await seed(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Fivefold" })).toBeVisible();
@@ -37,4 +40,5 @@ test("reloads and plays offline once the service worker is in control", async ({
   await expect(page.locator(".message")).toHaveText(
     "That stage link isn't valid",
   );
+  expect(violations).toEqual([]);
 });
